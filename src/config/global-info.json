@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "label": "NOTICE",
-  "message": "YT Cutter 1.9.0 | Hello everyon!",
-  "tone": "info",
+  "message": "YT Cutter 1.9.0 | Officialy out!",
+  "tone": "success",
   "updatedAt": "2026-11-24"
 }
