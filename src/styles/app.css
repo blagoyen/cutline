@@ -4069,12 +4069,13 @@ html[data-theme="dark"] .deck-buffered {
 }
 
 @keyframes playPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(230, 46, 45, 0.35);
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
   }
-  50% {
-    box-shadow: 0 0 0 5px rgba(230, 46, 45, 0);
+  100% {
+    opacity: 0;
+    transform: scale(1.32);
   }
 }
 
@@ -4089,7 +4090,6 @@ html[data-theme="dark"] .deck-buffered {
 
 .clip-row {
   animation: rowIn 0.24s cubic-bezier(0.2, 0.85, 0.25, 1) both;
-  will-change: transform, opacity;
 }
 
 .editorial-deck {
@@ -4097,7 +4097,16 @@ html[data-theme="dark"] .deck-buffered {
 }
 
 .deck-play.is-playing {
-  animation: playPulse 1.6s ease-in-out infinite;
+  position: relative;
+}
+
+.deck-play.is-playing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+  animation: playPulse 1.6s ease-out infinite;
 }
 
 .btn:not(:disabled):hover,
@@ -4284,7 +4293,6 @@ html[data-theme="dark"] .deck-buffered {
 
 .dl-row {
   animation: dlRowIn 0.28s cubic-bezier(0.2, 0.85, 0.25, 1) both;
-  will-change: transform, opacity;
 }
 
 .dl-row:nth-child(1) {

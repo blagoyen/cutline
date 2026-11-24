@@ -46,9 +46,13 @@ pub fn canonicalize(raw: &str) -> Result<(String, String), CommandError> {
         ));
     }
 
-    let candidate = if trimmed.to_lowercase().starts_with("http://")
-        || trimmed.to_lowercase().starts_with("https://")
-    {
+    let has_http_scheme = trimmed
+        .get(..7)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("http://"))
+        || trimmed
+            .get(..8)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("https://"));
+    let candidate = if has_http_scheme {
         trimmed.to_string()
     } else {
         format!("https://{}", trimmed)
@@ -298,8 +302,7 @@ fn strip_ansi(input: &str) -> String {
     output
 }
 
-pub fn tail(text: &str, lines: usize) -> String {
-    let cleaned = strip_ansi(text);
+fn tail_cleaned(cleaned: &str, lines: usize) -> String {
     let mut collected: Vec<&str> = cleaned
         .lines()
         .map(|line| line.trim())
@@ -311,10 +314,16 @@ pub fn tail(text: &str, lines: usize) -> String {
     collected.join("\n")
 }
 
+pub fn tail(text: &str, lines: usize) -> String {
+    let cleaned = strip_ansi(text);
+    tail_cleaned(&cleaned, lines)
+}
+
 /// Map yt-dlp errors to a user-facing message.
 pub fn map_error(stderr: &str, exit_context: &str, auth_enabled: bool) -> CommandError {
-    let lower = strip_ansi(stderr).to_lowercase();
-    let detail = tail(stderr, 8);
+    let cleaned = strip_ansi(stderr);
+    let lower = cleaned.to_lowercase();
+    let detail = tail_cleaned(&cleaned, 8);
 
     let (code, message): (&str, &str) = if lower.contains("n challenge solving failed")
         || lower.contains("no js runtimes")

@@ -432,7 +432,7 @@ const ClipRow = memo(function ClipRow({
   );
 });
 
-export function ClipList(props: ClipListProps) {
+export const ClipList = memo(function ClipList(props: ClipListProps) {
   const { clips, tasksByClip } = props;
 
   const issues = useMemo(() => {
@@ -526,4 +526,4 @@ export function ClipList(props: ClipListProps) {
       )}
     </section>
   );
-}
+});

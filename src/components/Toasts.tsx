@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import type { AppNotice } from "../types";
 
@@ -28,7 +29,7 @@ function Toast({ toast, onDismiss }: { toast: AppNotice; onDismiss: (id: number)
   );
 }
 
-export function Toasts({ toasts, onDismiss }: ToastsProps) {
+export const Toasts = memo(function Toasts({ toasts, onDismiss }: ToastsProps) {
   if (toasts.length === 0) return null;
   return (
     <div className="toasts">
@@ -37,4 +38,4 @@ export function Toasts({ toasts, onDismiss }: ToastsProps) {
       ))}
     </div>
   );
-}
+});

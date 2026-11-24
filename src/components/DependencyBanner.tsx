@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { AlertTriangle } from "lucide-react";
 import type { DependencyReport } from "../types";
 
@@ -6,7 +7,7 @@ interface DependencyBannerProps {
   onOpenSettings: () => void;
 }
 
-export function DependencyBanner({ dependencies, onOpenSettings }: DependencyBannerProps) {
+export const DependencyBanner = memo(function DependencyBanner({ dependencies, onOpenSettings }: DependencyBannerProps) {
   const missing = [
     !dependencies.ytDlp.ready ? "yt-dlp" : null,
     !dependencies.ffmpeg.ready ? "FFmpeg" : null,
@@ -28,4 +29,4 @@ export function DependencyBanner({ dependencies, onOpenSettings }: DependencyBan
       </button>
     </div>
   );
-}
+});

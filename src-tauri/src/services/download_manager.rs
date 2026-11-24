@@ -2,7 +2,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
@@ -119,16 +119,19 @@ fn number(raw: &str) -> Option<f64> {
 
 fn parse_progress(line: &str) -> Option<Progress> {
     let rest = line.strip_prefix(PROGRESS_PREFIX)?;
-    let parts: Vec<&str> = rest.split('|').collect();
-    if parts.len() < 6 {
-        return None;
-    }
+    // status|downloaded|total|estimate|speed|eta — parsed without allocating.
+    let mut parts = rest.split('|').skip(1);
+    let downloaded = parts.next()?;
+    let total = parts.next()?;
+    let estimate = parts.next()?;
+    let speed = parts.next()?;
+    let eta = parts.next()?;
     Some(Progress {
-        downloaded: number(parts[1]).map(|v| v as u64),
-        total: number(parts[2]).map(|v| v as u64),
-        estimate: number(parts[3]).map(|v| v as u64),
-        speed: number(parts[4]),
-        eta: number(parts[5]).map(|v| v as u64),
+        downloaded: number(downloaded).map(|v| v as u64),
+        total: number(total).map(|v| v as u64),
+        estimate: number(estimate).map(|v| v as u64),
+        speed: number(speed),
+        eta: number(eta).map(|v| v as u64),
     })
 }
 
@@ -237,7 +240,9 @@ async fn concat_sections(
             .to_string_lossy()
             .replace('\\', "/")
             .replace('\'', "'\\''");
-        list.push_str(&format!("file '{}'\n", escaped));
+        list.push_str("file '");
+        list.push_str(&escaped);
+        list.push_str("'\n");
     }
     tokio::fs::write(&list_path, list)
         .await
@@ -261,13 +266,13 @@ async fn concat_sections(
         destination.to_string_lossy().into_owned(),
     ];
 
-    let output = process_manager::run_capture(ffmpeg_bin, &args, Duration::from_secs(180))
-        .await
-        .map_err(|err| {
-            CommandError::new("CONCAT_FAILED", "Could not merge the cuts into one file.")
-                .with_detail(err.to_string())
-        })?;
+    let output = process_manager::run_capture(ffmpeg_bin, &args, Duration::from_secs(180)).await;
+    // Remove the list file on every path, including spawn failures.
     let _ = tokio::fs::remove_file(&list_path).await;
+    let output = output.map_err(|err| {
+        CommandError::new("CONCAT_FAILED", "Could not merge the cuts into one file.")
+            .with_detail(err.to_string())
+    })?;
 
     if !output.success {
         return Err(
@@ -386,7 +391,7 @@ impl DownloadManager {
             }
             inner.tasks.push(task.clone());
         }
-        self.emit_task(&task.id);
+        self.emit_snapshot(task.clone());
         Ok(task)
     }
 
@@ -395,7 +400,7 @@ impl DownloadManager {
         loop {
             let max = lock(&self.settings).max_concurrent_downloads.max(1) as usize;
 
-            let next_id = {
+            let next = {
                 let mut inner = lock(&self.inner);
                 let running = inner
                     .tasks
@@ -418,12 +423,14 @@ impl DownloadManager {
                 task.error = None;
                 task.error_code = None;
                 task.error_detail = None;
-                Some(task.id.clone())
+                let snapshot = task.clone();
+                let id = snapshot.id.clone();
+                inner.controls.insert(id.clone(), TaskControl::new());
+                Some((id, snapshot))
             };
 
-            let Some(id) = next_id else { break };
-            lock(&self.inner).controls.insert(id.clone(), TaskControl::new());
-            self.emit_task(&id);
+            let Some((id, snapshot)) = next else { break };
+            self.emit_snapshot(snapshot);
 
             let this = Arc::clone(self);
             tauri::async_runtime::spawn(async move {
@@ -447,9 +454,9 @@ impl DownloadManager {
         let result = self.execute(&task, &control).await;
         let was_cancelled = control.cancelled.load(Ordering::SeqCst);
 
-        {
+        let snapshot = {
             let mut inner = lock(&self.inner);
-            if let Some(entry) = inner.tasks.iter_mut().find(|t| t.id == id) {
+            let snapshot = if let Some(entry) = inner.tasks.iter_mut().find(|t| t.id == id) {
                 match result {
                     Ok(outcome) => {
                         entry.status = DownloadStatus::Completed;
@@ -479,11 +486,17 @@ impl DownloadManager {
                     }
                 }
                 entry.finished_at = Some(now_ms());
-            }
+                Some(entry.clone())
+            } else {
+                None
+            };
             inner.controls.remove(&id);
-        }
+            snapshot
+        };
 
-        self.emit_task(&id);
+        if let Some(snapshot) = snapshot {
+            self.emit_snapshot(snapshot);
+        }
         self.pump();
     }
 
@@ -531,11 +544,13 @@ impl DownloadManager {
         drop(tx);
 
         let mut progress: Option<Progress> = None;
+        // Set when a new progress line arrives; the ticker only emits fresh data.
+        let mut progress_dirty = false;
         let mut stage = DownloadStatus::Fetching;
         let mut stderr_tail: VecDeque<String> = VecDeque::new();
         let mut cancelled = false;
-        let mut ticker = tokio::time::interval(Duration::from_millis(300));
-        let mut last_emit = Instant::now();
+        let mut ticker = tokio::time::interval(Duration::from_millis(250));
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
         loop {
             tokio::select! {
@@ -549,11 +564,11 @@ impl DownloadManager {
                         cancelled = true;
                         break;
                     }
-                    if last_emit.elapsed() >= Duration::from_millis(350) {
+                    if progress_dirty {
                         if let Some(current) = &progress {
                             self.apply_progress_scaled(&task.id, current, stage, section_index, total_sections);
                         }
-                        last_emit = Instant::now();
+                        progress_dirty = false;
                     }
                 }
                 incoming = rx.recv() => {
@@ -563,6 +578,7 @@ impl DownloadManager {
                             if line.from_stdout && line.text.starts_with(PROGRESS_PREFIX) {
                                 if let Some(parsed) = parse_progress(&line.text) {
                                     progress = Some(parsed);
+                                    progress_dirty = true;
                                 }
                                 continue;
                             }
@@ -772,7 +788,7 @@ impl DownloadManager {
         section_index: usize,
         total_sections: usize,
     ) {
-        {
+        let snapshot = {
             let mut inner = lock(&self.inner);
             let Some(task) = inner.tasks.iter_mut().find(|t| t.id == id) else {
                 return;
@@ -799,18 +815,13 @@ impl DownloadManager {
             } else {
                 local.clamp(0.0, 0.995)
             };
-        }
-        self.emit_task(id);
+            task.clone()
+        };
+        self.emit_snapshot(snapshot);
     }
 
-    fn emit_task(&self, id: &str) {
-        let snapshot = {
-            let inner = lock(&self.inner);
-            inner.tasks.iter().find(|t| t.id == id).cloned()
-        };
-        if let Some(task) = snapshot {
-            let _ = self.app.emit("download:update", task);
-        }
+    fn emit_snapshot(&self, task: DownloadTask) {
+        let _ = self.app.emit("download:update", task);
     }
 
     pub fn cancel(&self, id: &str) -> Result<(), CommandError> {
@@ -824,16 +835,18 @@ impl DownloadManager {
             return Ok(());
         }
 
-        let mut inner = lock(&self.inner);
-        let Some(task) = inner.tasks.iter_mut().find(|t| t.id == id) else {
-            return Err(CommandError::new("DOWNLOAD_NOT_FOUND", "That download no longer exists."));
+        let snapshot = {
+            let mut inner = lock(&self.inner);
+            let Some(task) = inner.tasks.iter_mut().find(|t| t.id == id) else {
+                return Err(CommandError::new("DOWNLOAD_NOT_FOUND", "That download no longer exists."));
+            };
+            if task.status == DownloadStatus::Queued {
+                task.status = DownloadStatus::Cancelled;
+                task.finished_at = Some(now_ms());
+            }
+            task.clone()
         };
-        if task.status == DownloadStatus::Queued {
-            task.status = DownloadStatus::Cancelled;
-            task.finished_at = Some(now_ms());
-        }
-        drop(inner);
-        self.emit_task(id);
+        self.emit_snapshot(snapshot);
         Ok(())
     }
 
@@ -858,7 +871,7 @@ impl DownloadManager {
             task.reset_for_retry();
             task.clone()
         };
-        self.emit_task(id);
+        self.emit_snapshot(snapshot.clone());
         Ok(snapshot)
     }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 interface YtPlayer {
   playVideo: () => void;
@@ -383,17 +383,22 @@ export function useYouTubePlayer(
     [applyState],
   );
 
-  return {
-    ...state,
-    currentMsRef,
-    loadedFractionRef,
-    play,
-    pause,
-    toggle,
-    seekMs,
-    skipMs,
-    toggleMute,
-    setVolume,
-    setPlaybackRate,
-  };
+  // Stable identity between renders unless player state actually changes, so
+  // memoised consumers (VideoStage) skip unrelated parent re-renders.
+  return useMemo(
+    () => ({
+      ...state,
+      currentMsRef,
+      loadedFractionRef,
+      play,
+      pause,
+      toggle,
+      seekMs,
+      skipMs,
+      toggleMute,
+      setVolume,
+      setPlaybackRate,
+    }),
+    [state, play, pause, toggle, seekMs, skipMs, toggleMute, setVolume, setPlaybackRate],
+  );
 }

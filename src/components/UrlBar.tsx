@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import { ArrowRight, Link2, Loader2 } from "lucide-react";
 
 interface UrlBarProps {
@@ -10,7 +10,7 @@ interface UrlBarProps {
   onSubmit: () => void;
 }
 
-export function UrlBar({ value, loading, error, disabled, onChange, onSubmit }: UrlBarProps) {
+export const UrlBar = memo(function UrlBar({ value, loading, error, disabled, onChange, onSubmit }: UrlBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -64,4 +64,4 @@ export function UrlBar({ value, loading, error, disabled, onChange, onSubmit }: 
       </div>
     </section>
   );
-}
+});

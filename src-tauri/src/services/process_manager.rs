@@ -25,21 +25,30 @@ pub fn hide_console(command: &mut Command) {
 pub fn hide_console(_command: &mut Command) {}
 
 /// Terminate a process and every child it spawned (yt-dlp spawns FFmpeg).
+///
+/// The killer is spawned without waiting for it, so callers on the UI thread
+/// (cancel/remove commands, app exit) never block on `taskkill`.
 #[cfg(windows)]
 pub fn kill_tree(pid: u32) {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     let _ = std::process::Command::new("taskkill")
         .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .creation_flags(CREATE_NO_WINDOW)
-        .output();
+        .spawn();
 }
 
 #[cfg(not(windows))]
 pub fn kill_tree(pid: u32) {
     let _ = std::process::Command::new("kill")
         .args(["-TERM", &pid.to_string()])
-        .output();
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
 }
 
 async fn read_all<R>(mut stream: R) -> String

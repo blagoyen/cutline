@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use serde::Serialize;
@@ -69,39 +70,42 @@ fn file_name_for(tool: Tool) -> String {
     }
 }
 
-fn extra_search_dirs() -> Vec<PathBuf> {
-    let mut dirs: Vec<PathBuf> = Vec::new();
-    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-        let local = PathBuf::from(local);
-        dirs.push(local.join("Microsoft").join("WinGet").join("Links"));
-        dirs.push(local.join("Programs").join("ffmpeg").join("bin"));
-        dirs.push(local.join("Programs").join("yt-dlp"));
-        dirs.push(local.join("ffmpeg").join("bin"));
-        dirs.push(local.join("YT Cutter").join("bin"));
-    }
-    if let Some(home) = std::env::var_os("USERPROFILE") {
-        let home = PathBuf::from(home);
-        dirs.push(home.join("scoop").join("shims"));
-        dirs.push(home.join(".local").join("bin"));
-    }
-    dirs.push(PathBuf::from("C:\\ffmpeg\\bin"));
-    dirs.push(PathBuf::from("C:\\ProgramData\\chocolatey\\bin"));
-    dirs.push(PathBuf::from("C:\\Program Files\\ffmpeg\\bin"));
-    dirs.push(PathBuf::from("/usr/local/bin"));
-    dirs.push(PathBuf::from("/opt/homebrew/bin"));
+fn extra_search_dirs() -> &'static [PathBuf] {
+    static DIRS: OnceLock<Vec<PathBuf>> = OnceLock::new();
+    DIRS.get_or_init(|| {
+        let mut dirs: Vec<PathBuf> = Vec::new();
+        if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+            let local = PathBuf::from(local);
+            dirs.push(local.join("Microsoft").join("WinGet").join("Links"));
+            dirs.push(local.join("Programs").join("ffmpeg").join("bin"));
+            dirs.push(local.join("Programs").join("yt-dlp"));
+            dirs.push(local.join("ffmpeg").join("bin"));
+            dirs.push(local.join("YT Cutter").join("bin"));
+        }
+        if let Some(home) = std::env::var_os("USERPROFILE") {
+            let home = PathBuf::from(home);
+            dirs.push(home.join("scoop").join("shims"));
+            dirs.push(home.join(".local").join("bin"));
+        }
+        dirs.push(PathBuf::from("C:\\ffmpeg\\bin"));
+        dirs.push(PathBuf::from("C:\\ProgramData\\chocolatey\\bin"));
+        dirs.push(PathBuf::from("C:\\Program Files\\ffmpeg\\bin"));
+        dirs.push(PathBuf::from("/usr/local/bin"));
+        dirs.push(PathBuf::from("/opt/homebrew/bin"));
 
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            dirs.push(dir.to_path_buf());
-            dirs.push(dir.join("bin"));
-            dirs.push(dir.join("resources"));
-            dirs.push(dir.join("resources").join("bin"));
-            if let Some(parent) = dir.parent() {
-                dirs.push(parent.join("resources"));
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                dirs.push(dir.to_path_buf());
+                dirs.push(dir.join("bin"));
+                dirs.push(dir.join("resources"));
+                dirs.push(dir.join("resources").join("bin"));
+                if let Some(parent) = dir.parent() {
+                    dirs.push(parent.join("resources"));
+                }
             }
         }
-    }
-    dirs
+        dirs
+    })
 }
 
 /// Locate a tool, preferring an explicit user configuration.
@@ -130,7 +134,7 @@ pub fn resolve(tool: Tool, settings: &Settings) -> Option<PathBuf> {
     if let Some(path) = std::env::var_os("PATH") {
         dirs.extend(std::env::split_paths(&path));
     }
-    dirs.extend(extra_search_dirs());
+    dirs.extend(extra_search_dirs().iter().cloned());
 
     for dir in &dirs {
         if dir.as_os_str().is_empty() {

@@ -1,11 +1,11 @@
 use std::io::Cursor;
-use std::net::{TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::Manager;
+use tokio::net::TcpStream;
 use tokio::process::Command;
 use zip::ZipArchive;
 
@@ -126,23 +126,22 @@ fn extract(bytes: &[u8], dest: &Path, strip_first: bool) -> CmdResult<()> {
     Ok(())
 }
 
-fn port_open() -> bool {
-    let Ok(addresses) = LOCAL_URL.to_socket_addrs() else {
-        return false;
-    };
-    addresses
-        .into_iter()
-        .any(|address| TcpStream::connect_timeout(&address, Duration::from_millis(700)).is_ok())
+/// Probe the provider port without blocking a runtime thread.
+async fn port_open() -> bool {
+    matches!(
+        tokio::time::timeout(Duration::from_millis(700), TcpStream::connect(LOCAL_URL)).await,
+        Ok(Ok(_))
+    )
 }
 
 /// Provider status for Settings.
-pub fn status(settings: &Settings, pid: &std::sync::Mutex<Option<u32>>) -> ProviderStatus {
+pub async fn status(settings: &Settings, pid: &std::sync::Mutex<Option<u32>>) -> ProviderStatus {
     let installed = settings
         .pot_server_dir
         .as_deref()
         .map(|dir| Path::new(dir).join("build").join("main.js").is_file())
         .unwrap_or(false);
-    let running = port_open();
+    let running = port_open().await;
     if !running {
         let _ = lock(pid).take();
     }
@@ -282,8 +281,8 @@ pub async fn start(
     settings: &Settings,
     pid: &std::sync::Mutex<Option<u32>>,
 ) -> CmdResult<ProviderStatus> {
-    if port_open() {
-        return Ok(status(settings, pid));
+    if port_open().await {
+        return Ok(status(settings, pid).await);
     }
     let Some(server_dir) = settings.pot_server_dir.as_deref() else {
         return Err(CommandError::new("PROVIDER_NOT_INSTALLED", "Install the provider first."));
@@ -309,8 +308,8 @@ pub async fn start(
     drop(child);
 
     for _ in 0..20 {
-        if port_open() {
-            return Ok(status(settings, pid));
+        if port_open().await {
+            return Ok(status(settings, pid).await);
         }
         tokio::time::sleep(Duration::from_millis(400)).await;
     }
@@ -327,8 +326,8 @@ pub async fn start_if_installed(
     if !settings.pot_provider_enabled {
         return None;
     }
-    if port_open() {
-        return Some(status(settings, pid));
+    if port_open().await {
+        return Some(status(settings, pid).await);
     }
     let server_dir = settings.pot_server_dir.as_ref()?;
     if !Path::new(server_dir).join("build").join("main.js").is_file() {
@@ -337,9 +336,14 @@ pub async fn start_if_installed(
     start(settings, pid).await.ok()
 }
 
-pub fn stop(settings: &Settings, pid: &std::sync::Mutex<Option<u32>>) -> ProviderStatus {
+/// Kill the provider process, if this app started one. Never blocks.
+pub fn kill(pid: &std::sync::Mutex<Option<u32>>) {
     if let Some(process_id) = lock(pid).take() {
         process_manager::kill_tree(process_id);
     }
-    status(settings, pid)
+}
+
+pub async fn stop(settings: &Settings, pid: &std::sync::Mutex<Option<u32>>) -> ProviderStatus {
+    kill(pid);
+    status(settings, pid).await
 }

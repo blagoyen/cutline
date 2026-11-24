@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import type { DownloadRequest, DownloadTask } from "../types";
 
@@ -69,17 +69,26 @@ export function useDownloads() {
     setTasks(remaining);
   }, []);
 
-  const active = tasks.filter(
-    (task) => task.status === "queued" || task.status === "fetching" || task.status === "processing",
+  // Memoised so consumers (ClipList, DownloadManager) only see new references
+  // when the task list actually changes.
+  const active = useMemo(
+    () =>
+      tasks.filter(
+        (task) => task.status === "queued" || task.status === "fetching" || task.status === "processing",
+      ),
+    [tasks],
   );
 
-  const byClip = new Map<string, DownloadTask>();
-  for (const task of tasks) {
-    const current = byClip.get(task.clipId);
-    if (!current || task.createdAt >= current.createdAt) {
-      byClip.set(task.clipId, task);
+  const byClip = useMemo(() => {
+    const map = new Map<string, DownloadTask>();
+    for (const task of tasks) {
+      const current = map.get(task.clipId);
+      if (!current || task.createdAt >= current.createdAt) {
+        map.set(task.clipId, task);
+      }
     }
-  }
+    return map;
+  }, [tasks]);
 
   return { tasks, active, byClip, start, startBatch, cancel, retry, remove, clearFinished };
 }

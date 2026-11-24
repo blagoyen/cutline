@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -55,7 +55,7 @@ type WindowHandle = {
   close: () => Promise<void>;
 };
 
-export function TopBar({ dependencies, onOpenSettings, soundEnabled, onToggleSound }: TopBarProps) {
+export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, soundEnabled, onToggleSound }: TopBarProps) {
   const summary = dependencySummary(dependencies);
   const { info: globalInfo, status: infoStatus } = useGlobalInfo();
   const [maximized, setMaximized] = useState(false);
@@ -198,4 +198,4 @@ export function TopBar({ dependencies, onOpenSettings, soundEnabled, onToggleSou
       </div>
     </header>
   );
-}
+});

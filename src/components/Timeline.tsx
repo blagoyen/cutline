@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -38,7 +39,7 @@ const TICK_STEPS = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900,
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-export function Timeline({
+export const Timeline = memo(function Timeline({
   durationMs,
   currentMsRef,
   clips,
@@ -121,19 +122,36 @@ export function Timeline({
   }, [changeZoom, zoom]);
 
   // Move the playhead with a CSS transform; no React render per frame.
+  // The canvas width is cached via ResizeObserver (reading clientWidth every
+  // frame forces layout), and the transform is only written when it moves.
   useEffect(() => {
+    if (durationMs <= 0) return;
+    const canvas = canvasRef.current;
+    let width = canvas?.clientWidth ?? 0;
+    const observer = canvas
+      ? new ResizeObserver(() => {
+          width = canvas.clientWidth;
+        })
+      : null;
+    if (canvas) observer?.observe(canvas);
+
     let frame = 0;
+    let lastX = -1;
     const tick = () => {
-      const width = canvasRef.current?.clientWidth ?? 0;
-      const ratio = durationMs > 0 ? clamp(currentMsRef.current / durationMs, 0, 1) : 0;
-      if (playheadRef.current) {
-        playheadRef.current.style.transform = `translate3d(${ratio * width}px, 0, 0)`;
+      const ratio = clamp(currentMsRef.current / durationMs, 0, 1);
+      const x = Math.round(ratio * width * 10) / 10;
+      if (playheadRef.current && x !== lastX) {
+        lastX = x;
+        playheadRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
       }
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frame);
-  }, [currentMsRef, durationMs, zoom]);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [currentMsRef, durationMs]);
 
   const applyDrag = useCallback(
     (clientX: number) => {
@@ -355,4 +373,4 @@ export function Timeline({
       </p>
     </section>
   );
-}
+});

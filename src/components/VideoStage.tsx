@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -61,7 +62,7 @@ interface VideoStageProps {
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 const QUICK_PRESETS = [10_000, 30_000, 60_000] as const;
 
-export function VideoStage({
+export const VideoStage = memo(function VideoStage({
   video,
   hostRef,
   player,
@@ -126,26 +127,38 @@ export function VideoStage({
   }, [video]);
 
   // One rAF loop updates the playhead and timecode without React state.
+  // DOM writes are skipped when nothing changed, so a paused player costs
+  // almost nothing per frame (no style invalidation, no text updates).
   useEffect(() => {
     let frame = 0;
+    let lastX = -1;
+    let lastBuffered = -1;
+    let lastText = "";
     const tick = () => {
       const ms = clockRef.current;
       const ratio = durationMs > 0 ? clamp(ms / durationMs, 0, 1) : 0;
-      if (playheadRef.current) {
-        playheadRef.current.style.transform = `translate3d(${ratio * scrubWidthRef.current}px, 0, 0)`;
+      const x = Math.round(ratio * scrubWidthRef.current * 10) / 10;
+      if (playheadRef.current && x !== lastX) {
+        lastX = x;
+        playheadRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
       }
-      if (bufferedRef.current) {
-        bufferedRef.current.style.transform = `scaleX(${clamp(loadedRef.current, 0, 1)})`;
+      const buffered = Math.round(clamp(loadedRef.current, 0, 1) * 1000) / 1000;
+      if (bufferedRef.current && buffered !== lastBuffered) {
+        lastBuffered = buffered;
+        bufferedRef.current.style.transform = `scaleX(${buffered})`;
       }
       if (timeRef.current) {
         const text = formatTimecode(ms);
-        if (timeRef.current.textContent !== text) timeRef.current.textContent = text;
+        if (text !== lastText) {
+          lastText = text;
+          timeRef.current.textContent = text;
+        }
       }
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
-  }, [clockRef, loadedRef, durationMs]);
+  }, [clockRef, loadedRef, durationMs, video]);
 
   useEffect(() => {
     const handle = () => setFullscreen(document.fullscreenElement === frameRef.current);
@@ -535,4 +548,4 @@ export function VideoStage({
       </div>
     </section>
   );
-}
+});

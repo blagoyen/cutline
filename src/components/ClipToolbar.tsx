@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Download } from "lucide-react";
 import type { VideoInfo } from "../types";
 import { NAMING_TEMPLATES, qualityLabel } from "../utils/format";
@@ -19,7 +20,7 @@ interface ClipToolbarProps {
   onExport: () => void;
 }
 
-export function ClipToolbar({
+export const ClipToolbar = memo(function ClipToolbar({
   video,
   quality,
   format,
@@ -137,4 +138,4 @@ export function ClipToolbar({
       </p>
     </section>
   );
-}
+});

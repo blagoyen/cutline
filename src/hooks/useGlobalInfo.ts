@@ -33,8 +33,14 @@ function writeCached(info: GlobalInfo) {
 
 /** Loads the shared notice, falling back to cached or bundled copy. */
 export function useGlobalInfo() {
-  const [info, setInfo] = useState<GlobalInfo>(() => readCached() ?? BUNDLED_GLOBAL_INFO);
-  const [status, setStatus] = useState<GlobalInfoStatus>(() => (readCached() ? "cached" : "local"));
+  const [initial] = useState<{ info: GlobalInfo; status: GlobalInfoStatus }>(() => {
+    const cached = readCached();
+    return cached
+      ? { info: cached, status: "cached" }
+      : { info: BUNDLED_GLOBAL_INFO, status: "local" };
+  });
+  const [info, setInfo] = useState<GlobalInfo>(initial.info);
+  const [status, setStatus] = useState<GlobalInfoStatus>(initial.status);
   const [lastChecked, setLastChecked] = useState<number | null>(null);
   const lastAttemptRef = useRef(0);
 

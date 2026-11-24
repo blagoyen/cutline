@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Clapperboard, Clock3 } from "lucide-react";
 import { formatDuration, qualityLabel } from "../utils/format";
 
@@ -14,7 +15,7 @@ const STEPS = [
   { index: "03", text: "Choose quality and export from the bar below." },
 ];
 
-export function HeroPanel({ clipCount, totalDurationMs, quality, format }: HeroPanelProps) {
+export const HeroPanel = memo(function HeroPanel({ clipCount, totalDurationMs, quality, format }: HeroPanelProps) {
   return (
     <aside className="editorial">
       <p className="eyebrow">YT Cutter</p>
@@ -69,4 +70,4 @@ export function HeroPanel({ clipCount, totalDurationMs, quality, format }: HeroP
       </div>
     </aside>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { AlertCircle, Check, Loader2, RefreshCw, X } from "lucide-react";
 import { api, ApiError, errorMessage } from "../services/api";
 import type {
@@ -87,7 +87,7 @@ function ToolField({
   );
 }
 
-export function SettingsPanel({
+export const SettingsPanel = memo(function SettingsPanel({
   open,
   settings,
   dependencies,
@@ -840,4 +840,4 @@ export function SettingsPanel({
       </aside>
     </div>
   );
-}
+});

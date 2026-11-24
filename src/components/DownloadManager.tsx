@@ -209,7 +209,7 @@ const DownloadRow = memo(function DownloadRow({
   );
 });
 
-export function DownloadManager({
+export const DownloadManager = memo(function DownloadManager({
   tasks,
   activeCount,
   onCancel,
@@ -301,4 +301,4 @@ export function DownloadManager({
       )}
     </section>
   );
-}
+});

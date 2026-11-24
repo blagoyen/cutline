@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "./hooks/useSettings";
 import { useDownloads } from "./hooks/useDownloads";
 import { useNotifications } from "./hooks/useNotifications";
+import { useStableCallback } from "./hooks/useStableCallback";
 import { useYouTubePlayer, type LoopRange } from "./hooks/useYouTubePlayer";
 import { api, errorMessage } from "./services/api";
 import type { Chapter, Clip, DownloadRequest, DownloadSection, Settings, VideoInfo } from "./types";
@@ -14,12 +15,17 @@ import { Timeline } from "./components/Timeline";
 import { ClipToolbar } from "./components/ClipToolbar";
 import { ClipList, type ClipEdge } from "./components/ClipList";
 import { DownloadManager } from "./components/DownloadManager";
-import { SettingsPanel } from "./components/SettingsPanel";
 import { DependencyBanner } from "./components/DependencyBanner";
 import { Toasts } from "./components/Toasts";
 
+const SettingsPanel = lazy(() =>
+  import("./components/SettingsPanel").then((module) => ({ default: module.SettingsPanel })),
+);
+
 const MIN_CLIP_MS = 100;
 const DEFAULT_CLIP_MS = 10_000;
+/** Shared empty list so memoised children keep a stable prop. */
+const NO_CHAPTERS: Chapter[] = [];
 
 const newId = () =>
   typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -42,6 +48,7 @@ export default function App() {
 
   const {
     tasks: downloadTasks,
+    active: activeDownloads,
     byClip,
     start: startDownload,
     startBatch,
@@ -118,13 +125,13 @@ export default function App() {
     setSoundEnabled(settings.soundEffects);
   }, [settings]);
 
-  const toggleSound = useCallback(() => {
+  const toggleSound = useStableCallback(() => {
     const next = !soundEnabled;
     setSoundEnabled(next);
     if (settings) {
       void patchSettings({ soundEffects: next }).catch((err) => toast(errorMessage(err), "error"));
     }
-  }, [soundEnabled, settings, patchSettings, toast]);
+  });
 
   const seenCompleted = useRef(new Set<string>());
   useEffect(() => {
@@ -161,7 +168,11 @@ export default function App() {
     }
   }, [url, loadingVideo, quality]);
 
-  const markIn = useCallback(() => {
+  // Handlers below that read frequently-changing state (clips, pending marks,
+  // active clip) use useStableCallback: their identity never changes, so the
+  // memoised children (VideoStage, ClipList rows, Timeline) are not re-rendered
+  // every time a clip is dragged or a download reports progress.
+  const markIn = useStableCallback(() => {
     if (!video) return;
     const now = Math.round(player.currentMsRef.current);
     setPendingIn(now);
@@ -171,9 +182,9 @@ export default function App() {
         : Math.min(now + DEFAULT_CLIP_MS, durationMs),
     );
     playSound("tick");
-  }, [video, durationMs, playSound]);
+  });
 
-  const markOut = useCallback(() => {
+  const markOut = useStableCallback(() => {
     if (!video) return;
     const now = Math.round(player.currentMsRef.current);
     if (pendingIn == null) {
@@ -189,9 +200,9 @@ export default function App() {
     }
     setPendingOut(now);
     playSound("tick");
-  }, [video, pendingIn, toast, playSound]);
+  });
 
-  const addCut = useCallback(() => {
+  const addCut = useStableCallback(() => {
     if (!video) return;
     const start = pendingIn ?? Math.round(player.currentMsRef.current);
     let end = pendingOut ?? Math.min(start + DEFAULT_CLIP_MS, durationMs);
@@ -212,9 +223,9 @@ export default function App() {
     setActiveClipId(clip.id);
     setPendingIn(null);
     setPendingOut(null);
-  }, [video, pendingIn, pendingOut, durationMs, clips.length, toast]);
+  });
 
-  const addManualCut = useCallback(() => {
+  const addManualCut = useStableCallback(() => {
     if (!video) return;
     const previous = clips[clips.length - 1];
     const start = previous ? Math.min(previous.endMs, Math.max(0, durationMs - 100)) : 0;
@@ -231,45 +242,44 @@ export default function App() {
     };
     setClips((prev) => [...prev, clip]);
     setActiveClipId(clip.id);
-  }, [video, clips, durationMs, toast]);
+  });
 
   const updateClip = useCallback((id: string, patch: Partial<Clip>) => {
     setClips((prev) => prev.map((clip) => (clip.id === id ? { ...clip, ...patch } : clip)));
   }, []);
 
-  const deleteClip = useCallback(
-    (id: string) => {
-      setClips((prev) => prev.filter((clip) => clip.id !== id));
-      if (activeClipId === id) {
-        setActiveClipId(null);
-        setLoopEnabled(false);
-      }
-    },
-    [activeClipId],
+  const changeClipRange = useCallback(
+    (id: string, startMs: number, endMs: number) => updateClip(id, { startMs, endMs }),
+    [updateClip],
   );
 
-  const duplicateClip = useCallback(
-    (id: string) => {
-      const clip = clips.find((entry) => entry.id === id);
-      if (!clip) return;
-      const length = clip.endMs - clip.startMs;
-      const start = clamp(clip.endMs, 0, Math.max(0, durationMs - length));
-      const end = Math.min(start + length, durationMs);
-      if (end - start < MIN_CLIP_MS) {
-        toast("There is no room left to duplicate this cut.", "error");
-        return;
-      }
-      const copy: Clip = {
-        id: newId(),
-        name: `${clip.name.trim() || "Clip"} copy`,
-        startMs: start,
-        endMs: end,
-      };
-      setClips((prev) => [...prev, copy]);
-      setActiveClipId(copy.id);
-    },
-    [clips, durationMs, toast],
-  );
+  const deleteClip = useStableCallback((id: string) => {
+    setClips((prev) => prev.filter((clip) => clip.id !== id));
+    if (activeClipId === id) {
+      setActiveClipId(null);
+      setLoopEnabled(false);
+    }
+  });
+
+  const duplicateClip = useStableCallback((id: string) => {
+    const clip = clips.find((entry) => entry.id === id);
+    if (!clip) return;
+    const length = clip.endMs - clip.startMs;
+    const start = clamp(clip.endMs, 0, Math.max(0, durationMs - length));
+    const end = Math.min(start + length, durationMs);
+    if (end - start < MIN_CLIP_MS) {
+      toast("There is no room left to duplicate this cut.", "error");
+      return;
+    }
+    const copy: Clip = {
+      id: newId(),
+      name: `${clip.name.trim() || "Clip"} copy`,
+      startMs: start,
+      endMs: end,
+    };
+    setClips((prev) => [...prev, copy]);
+    setActiveClipId(copy.id);
+  });
 
   const moveClip = useCallback((id: string, direction: -1 | 1) => {
     setClips((prev) => {
@@ -338,29 +348,26 @@ export default function App() {
   }, []);
 
   /** Add a fixed-length cut. */
-  const quickCut = useCallback(
-    (lengthMs: number) => {
-      if (!video || durationMs <= 0) return;
-      const start = clamp(pendingIn ?? Math.round(player.currentMsRef.current), 0, durationMs);
-      const end = Math.min(start + lengthMs, durationMs);
-      if (end - start < MIN_CLIP_MS) {
-        toast("Move the playhead earlier — not enough room for that preset.", "error");
-        return;
-      }
-      const clip: Clip = {
-        id: newId(),
-        name: `Clip ${String(clips.length + 1).padStart(2, "0")}`,
-        startMs: start,
-        endMs: end,
-      };
-      setClips((prev) => [...prev, clip]);
-      setActiveClipId(clip.id);
-      setPendingIn(null);
-      setPendingOut(null);
-      toast(`${Math.round(lengthMs / 1000)}s cut added.`, "success");
-    },
-    [video, durationMs, pendingIn, clips.length, toast],
-  );
+  const quickCut = useStableCallback((lengthMs: number) => {
+    if (!video || durationMs <= 0) return;
+    const start = clamp(pendingIn ?? Math.round(player.currentMsRef.current), 0, durationMs);
+    const end = Math.min(start + lengthMs, durationMs);
+    if (end - start < MIN_CLIP_MS) {
+      toast("Move the playhead earlier — not enough room for that preset.", "error");
+      return;
+    }
+    const clip: Clip = {
+      id: newId(),
+      name: `Clip ${String(clips.length + 1).padStart(2, "0")}`,
+      startMs: start,
+      endMs: end,
+    };
+    setClips((prev) => [...prev, clip]);
+    setActiveClipId(clip.id);
+    setPendingIn(null);
+    setPendingOut(null);
+    toast(`${Math.round(lengthMs / 1000)}s cut added.`, "success");
+  });
 
   const jumpToChapter = useCallback(
     (chapter: Chapter) => {
@@ -371,23 +378,20 @@ export default function App() {
     [seekMs, play],
   );
 
-  const chapterToCut = useCallback(
-    (chapter: Chapter) => {
-      const clip: Clip = {
-        id: newId(),
-        name: chapter.title.trim() || `Chapter ${String(clips.length + 1).padStart(2, "0")}`,
-        startMs: chapter.startMs,
-        endMs: chapter.endMs,
-      };
-      setClips((prev) => [...prev, clip]);
-      setActiveClipId(clip.id);
-      toast(`Chapter “${clip.name}” added as a cut.`, "success");
-    },
-    [clips.length, toast],
-  );
+  const chapterToCut = useStableCallback((chapter: Chapter) => {
+    const clip: Clip = {
+      id: newId(),
+      name: chapter.title.trim() || `Chapter ${String(clips.length + 1).padStart(2, "0")}`,
+      startMs: chapter.startMs,
+      endMs: chapter.endMs,
+    };
+    setClips((prev) => [...prev, clip]);
+    setActiveClipId(clip.id);
+    toast(`Chapter “${clip.name}” added as a cut.`, "success");
+  });
 
   /** Trim cuts so they do not overlap or become zero-length. */
-  const fixOverlaps = useCallback(() => {
+  const fixOverlaps = useStableCallback(() => {
     if (clips.length === 0) return;
     let cursor = 0;
     let fixed = 0;
@@ -412,7 +416,7 @@ export default function App() {
         : "All cuts are already clean.",
       fixed > 0 ? "success" : "info",
     );
-  }, [clips, durationMs, toast]);
+  });
 
   const ensureToolsReady = useCallback(() => {
     if (dependencies?.ready) return true;
@@ -465,18 +469,15 @@ export default function App() {
     };
   }, [video, clips, namingTemplate, buildRequest, quality, format, precise]);
 
-  const downloadClip = useCallback(
-    (clip: Clip) => {
-      if (!video || !ensureToolsReady()) return;
-      const index = clips.findIndex((entry) => entry.id === clip.id);
-      void startDownload(buildRequest(clip, Math.max(0, index)))
-        .then(() => toast(`Queued “${clip.name}”.`, "success"))
-        .catch((err) => toast(errorMessage(err), "error"));
-    },
-    [video, clips, ensureToolsReady, startDownload, buildRequest, toast],
-  );
+  const downloadClip = useStableCallback((clip: Clip) => {
+    if (!video || !ensureToolsReady()) return;
+    const index = clips.findIndex((entry) => entry.id === clip.id);
+    void startDownload(buildRequest(clip, Math.max(0, index)))
+      .then(() => toast(`Queued “${clip.name}”.`, "success"))
+      .catch((err) => toast(errorMessage(err), "error"));
+  });
 
-  const downloadAll = useCallback(() => {
+  const downloadAll = useStableCallback(() => {
     if (!video || clips.length === 0 || !ensureToolsReady()) return;
     setExporting(true);
     const task = mergeCuts && clips.length > 1 ? startDownload(buildMergedRequest()) : startBatch(clips.map(buildRequest));
@@ -487,7 +488,7 @@ export default function App() {
       })
       .catch((err) => toast(errorMessage(err), "error"))
       .finally(() => setExporting(false));
-  }, [video, clips, ensureToolsReady, mergeCuts, startDownload, startBatch, buildMergedRequest, buildRequest, toast]);
+  });
 
   const changeQuality = useCallback(
     (next: string) => {
@@ -633,6 +634,20 @@ export default function App() {
     void clearFinishedDownloads().catch((err) => toast(errorMessage(err), "error"));
   }, [clearFinishedDownloads, toast]);
 
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+
+  const handleUrlChange = useStableCallback((next: string) => {
+    setUrl(next);
+    if (loadError) setLoadError(null);
+  });
+
+  const handleUrlSubmit = useStableCallback(() => void handleLoadVideo());
+
+  const handleOpenSource = useStableCallback(() => {
+    void api.openUrl(video?.webpageUrl ?? "").catch((err) => toast(errorMessage(err), "error"));
+  });
+
   if (!settings) {
     return (
       <div className="boot">
@@ -644,15 +659,13 @@ export default function App() {
     );
   }
 
-  const activeCount = downloadTasks.filter(
-    (task) => task.status === "queued" || task.status === "fetching" || task.status === "processing",
-  ).length;
+  const activeCount = activeDownloads.length;
 
   return (
     <div className="app-shell">
       <TopBar
         dependencies={dependencies}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={openSettings}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
       />
@@ -662,17 +675,14 @@ export default function App() {
           value={url}
           loading={loadingVideo}
           error={loadError}
-          onChange={(next) => {
-            setUrl(next);
-            if (loadError) setLoadError(null);
-          }}
-          onSubmit={() => void handleLoadVideo()}
+          onChange={handleUrlChange}
+          onSubmit={handleUrlSubmit}
         />
 
         {dependencies && !dependencies.ready ? (
           <DependencyBanner
             dependencies={dependencies}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenSettings={openSettings}
           />
         ) : null}
 
@@ -696,7 +706,7 @@ export default function App() {
               canAddCut={Boolean(video)}
               loopEnabled={loopEnabled}
               canLoop={Boolean(activeRange && player.ready)}
-              onOpenSource={() => void api.openUrl(video?.webpageUrl ?? "").catch((err) => toast(errorMessage(err), "error"))}
+              onOpenSource={handleOpenSource}
               onMarkIn={markIn}
               onMarkOut={markOut}
               onAddCut={addCut}
@@ -704,7 +714,7 @@ export default function App() {
               onSeek={seekMs}
               onSkip={skipMs}
               onQuickCut={quickCut}
-              chapters={video?.chapters ?? []}
+              chapters={video?.chapters ?? NO_CHAPTERS}
               onJumpChapter={jumpToChapter}
               onChapterToCut={chapterToCut}
             />
@@ -717,7 +727,7 @@ export default function App() {
               pendingIn={pendingIn}
               pendingOut={pendingOut}
               onSeek={seekMs}
-              onChangeClip={(id, startMs, endMs) => updateClip(id, { startMs, endMs })}
+              onChangeClip={changeClipRange}
               onSelectClip={setActiveClipId}
             />
 
@@ -788,17 +798,21 @@ export default function App() {
         </footer>
       </main>
 
-      <SettingsPanel
-        open={settingsOpen}
-        settings={settings}
-        dependencies={dependencies}
-        version={version}
-        onClose={() => setSettingsOpen(false)}
-        onSave={handleSaveSettings}
-        onRefreshDependencies={refreshDependencies}
-        onToast={toast}
-        testVideoUrl={video?.webpageUrl ?? null}
-      />
+      {settingsOpen ? (
+        <Suspense fallback={null}>
+          <SettingsPanel
+            open={settingsOpen}
+            settings={settings}
+            dependencies={dependencies}
+            version={version}
+            onClose={closeSettings}
+            onSave={handleSaveSettings}
+            onRefreshDependencies={refreshDependencies}
+            onToast={toast}
+            testVideoUrl={video?.webpageUrl ?? null}
+          />
+        </Suspense>
+      ) : null}
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />
     </div>

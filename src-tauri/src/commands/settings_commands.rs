@@ -37,7 +37,7 @@ pub async fn update_settings(
         (Tool::Ffprobe, next.ffprobe_path.as_deref()),
     ] {
         if let Some(path) = value {
-                        binaries::verify_binary(tool, path).await?;
+            binaries::verify_binary(tool, path).await?;
         }
     }
 
@@ -97,8 +97,9 @@ pub async fn test_youtube_auth(
 }
 
 /// List browser profiles for the dropdown.
+/// Async so the filesystem scan runs off the UI thread.
 #[tauri::command]
-pub fn browser_profiles(browser: String) -> BrowserProfileInfo {
+pub async fn browser_profiles(browser: String) -> BrowserProfileInfo {
     auth::browser_profiles(&browser)
 }
 
@@ -284,7 +285,7 @@ pub async fn install_pot_provider(
     let status = match pot_provider::start(&settings, &state.pot_pid).await {
         Ok(status) => status,
         Err(err) => {
-            let mut fallback = pot_provider::status(&settings, &state.pot_pid);
+            let mut fallback = pot_provider::status(&settings, &state.pot_pid).await;
             fallback.message = format!("{} {}", fallback.message, err.message);
             fallback
         }
@@ -303,15 +304,18 @@ pub async fn start_pot_provider(
     pot_provider::start(&settings, &state.pot_pid).await
 }
 
+// Async: the port probe can take up to 700 ms and must not freeze the UI thread.
 #[tauri::command]
-pub fn stop_pot_provider(state: State<'_, AppState>) -> ProviderStatus {
+pub async fn stop_pot_provider(state: State<'_, AppState>) -> Result<ProviderStatus, CommandError> {
     let settings = lock(&state.settings).clone();
-    pot_provider::stop(&settings, &state.pot_pid)
+    Ok(pot_provider::stop(&settings, &state.pot_pid).await)
 }
 
 #[tauri::command]
-pub fn pot_provider_status(state: State<'_, AppState>) -> ProviderStatus {
+pub async fn pot_provider_status(
+    state: State<'_, AppState>,
+) -> Result<ProviderStatus, CommandError> {
     let settings = lock(&state.settings).clone();
-    pot_provider::status(&settings, &state.pot_pid)
+    Ok(pot_provider::status(&settings, &state.pot_pid).await)
 }
 

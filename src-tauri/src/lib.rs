@@ -134,8 +134,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 if let Some(state) = app_handle.try_state::<AppState>() {
                     state.downloads.shutdown();
-                    let settings = lock(&state.settings).clone();
-                    services::pot_provider::stop(&settings, &state.pot_pid);
+                    services::pot_provider::kill(&state.pot_pid);
                 }
             }
         });
