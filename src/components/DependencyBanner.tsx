@@ -21,7 +21,7 @@ export function DependencyBanner({ dependencies, onOpenSettings }: DependencyBan
       <div className="dep-banner-text">
         <strong>{missing.join(", ")}</strong>{" "}
         {missing.length === 1 ? "is" : "are"} required to load and cut videos. Set the executable
-        path in Settings — YT Cutter never installs tools without asking.
+        path in Settings.
       </div>
       <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenSettings}>
         Open settings

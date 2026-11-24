@@ -35,7 +35,6 @@ export function ClipToolbar({
   onMergeCuts,
   onExport,
 }: ClipToolbarProps) {
-  const heights = video.heights.length > 0 ? video.heights : [];
   const canMerge = clipCount > 1;
   const exportLabel =
     clipCount === 0
@@ -57,7 +56,7 @@ export function ClipToolbar({
             <option value="best">
               Best available{video.maxHeight > 0 ? ` (${video.maxHeight}p)` : ""}
             </option>
-            {heights.map((height) => (
+            {video.heights.map((height) => (
               <option key={height} value={`${height}p`}>
                 {height}p
               </option>
@@ -134,8 +133,7 @@ export function ClipToolbar({
       </div>
 
       <p className="toolbar-footnote">
-        Only the selected ranges are requested — yt-dlp never downloads the full video. The file is
-        assembled and verified locally.{format === "mp3" ? " Audio is converted to MP3." : ""}
+        Selected ranges are downloaded and checked locally.{format === "mp3" ? " Audio is converted to MP3." : ""}
       </p>
     </section>
   );

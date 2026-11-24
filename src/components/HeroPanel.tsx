@@ -20,14 +20,14 @@ export function HeroPanel({ clipCount, totalDurationMs, quality, format }: HeroP
       <p className="eyebrow">YT Cutter</p>
 
       <h1 className="headline">
-        Cut YouTube videos in seconds —
+        Cut only the parts you want
         <br />
-        <em>only the parts you want.</em>
+        <em>from any YouTube video.</em>
       </h1>
 
       <p className="lede">
-        Paste a YouTube link, mark your in and out points, and download only the moments you need.
-        No unnecessary downloads. No watermark. No subscription.
+        Paste a YouTube link, mark the in and out points, and export the clips you need. All
+        processing stays on this computer.
       </p>
 
       <ol className="steps">
@@ -65,7 +65,7 @@ export function HeroPanel({ clipCount, totalDurationMs, quality, format }: HeroP
           <span>Output</span>
           <b>{qualityLabel(quality)}</b>
         </div>
-        <p className="summary-foot">Nothing is uploaded — every cut runs on this computer.</p>
+        <p className="summary-foot">All processing stays on this computer.</p>
       </div>
     </aside>
   );

@@ -120,7 +120,7 @@ export function Timeline({
     return () => viewport.removeEventListener("wheel", handleWheel);
   }, [changeZoom, zoom]);
 
-  // Playhead motion is a GPU transform on a single node — no React render per frame.
+  // Move the playhead with a CSS transform; no React render per frame.
   useEffect(() => {
     let frame = 0;
     const tick = () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
 import type { DownloadRequest, DownloadTask } from "../types";
 
@@ -12,10 +12,8 @@ function upsert(list: DownloadTask[], task: DownloadTask): DownloadTask[] {
 
 export function useDownloads() {
   const [tasks, setTasks] = useState<DownloadTask[]>([]);
-  const mounted = useRef(true);
 
   useEffect(() => {
-    mounted.current = true;
     let unlisten: (() => void) | undefined;
     let disposed = false;
 
@@ -29,13 +27,12 @@ export function useDownloads() {
         if (disposed) stop();
         else unlisten = stop;
       } catch {
-        /* The manager is best-effort; the UI keeps working without it. */
+        /* Ignore event setup failures; queued tasks still show in the UI. */
       }
     })();
 
     return () => {
       disposed = true;
-      mounted.current = false;
       unlisten?.();
     };
   }, []);

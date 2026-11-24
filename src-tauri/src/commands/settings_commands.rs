@@ -37,8 +37,7 @@ pub async fn update_settings(
         (Tool::Ffprobe, next.ffprobe_path.as_deref()),
     ] {
         if let Some(path) = value {
-            // Refuse a path that exists but cannot actually be executed.
-            binaries::verify_binary(tool, path).await?;
+                        binaries::verify_binary(tool, path).await?;
         }
     }
 
@@ -85,8 +84,7 @@ pub async fn check_dependencies(
     Ok(binaries::check_dependencies(&settings).await)
 }
 
-/// Probe the selected browser session with a real YouTube metadata request.
-/// The settings are passed from the UI so the saved configuration is untouched.
+/// Test YouTube auth using the supplied settings.
 #[tauri::command]
 pub async fn test_youtube_auth(
     state: State<'_, AppState>,
@@ -98,8 +96,7 @@ pub async fn test_youtube_auth(
     auth::test_authentication(&settings, url).await
 }
 
-/// Discover browser profile names for the profile dropdown. No cookies or
-/// browser databases are read here.
+/// List browser profiles for the dropdown.
 #[tauri::command]
 pub fn browser_profiles(browser: String) -> BrowserProfileInfo {
     auth::browser_profiles(&browser)
@@ -113,7 +110,7 @@ pub async fn check_ytdlp_update(
     updater::check(&settings).await
 }
 
-/// Install a checksum-verified official build into the app's own data folder.
+/// Install a yt-dlp update into the app data folder.
 #[tauri::command]
 pub async fn update_ytdlp(
     app: AppHandle,
@@ -268,7 +265,7 @@ pub fn app_version(app: AppHandle) -> String {
     app.package_info().version.to_string()
 }
 
-/// Explicit download + verification + build of the optional PO Token provider.
+/// Install and start the optional PO Token provider.
 #[tauri::command]
 pub async fn install_pot_provider(
     app: AppHandle,

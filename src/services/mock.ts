@@ -1,10 +1,4 @@
-/**
- * Development-only stand-in for the Rust backend.
- *
- * It is loaded exclusively when the UI runs in a normal browser (`npm run dev`)
- * instead of the Tauri webview, so the layout and interactions can be checked
- * without a native shell. Production builds never include this code path.
- */
+/** Mock backend used by `npm run dev` in a plain browser. */
 import type {
   AuthTestResult,
   CommandError,
@@ -310,7 +304,7 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
         message: "Provider is stopped.",
       } as T;
     case "app_version":
-      return "0.1.0" as T;
+      return "1.9.0" as T;
     case "pick_directory":
       await sleep(300);
       return "D:\\Exports\\YT Cutter" as T;

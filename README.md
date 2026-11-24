@@ -1,43 +1,102 @@
-# YT Cutter
+<p align="center">
+  <img src="docs/images/app-hero.png" alt="YT Cutter on a warm desktop" width="820">
+</p>
 
-A local-first Windows desktop app for cutting out only the parts of a YouTube video you want. Paste a link, mark in/out points, add as many cuts as you need, and download them as separate MP4 (or MP3) files — no full-video download, no watermark, no account.
+<h1 align="center">YT Cutter</h1>
 
-Built with **Tauri 2**, **React + TypeScript**, and hand-written CSS. Rust owns every process and all state; the frontend only sends typed commands and listens for progress events.
+<p align="center">
+  Paste a YouTube link. Mark the parts you want. Leave with clean MP4 or MP3 files.
+</p>
 
-## Features
+<p align="center">
+  <strong>v1.9.0</strong> &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Tauri 2 &nbsp;·&nbsp; local-first
+</p>
 
-- YouTube link validation for `watch`, `youtu.be`, Shorts, embed, and bare 11-character IDs.
-- Custom editorial player with a bordered dark frame and a single-row 52px paper/ink control deck: red play/pause, ±5s skips, mute + volume, speed, centered tabular timecode, a buffered scrubber with cut markers and an IN→OUT zone, mark in/out, add cut, loop, fullscreen, plus a custom frameless title bar with minimize/maximize/close.
-- Multiple cuts with draggable edges, locked-column rows, numeric `HH:MM:SS.mmm` inputs with ±0.1s / snap-to-playhead buttons, inline overlap badges with a one-click Fix / trim helper, strict validation, reordering, renaming, and deletion.
-- Quick `+10s` / `+30s` / `+60s` cuts from the mark-in point or the live playhead, plus chapter-aware navigation and one-click chapter-to-cut conversion when the uploader supplied chapters.
-- Real download manager: queue, concurrency limit, per-task progress/speed/ETA, cancel, retry, removal, and verified output paths.
-- Direct section downloads with `yt-dlp --download-sections "*HH:MM:SS.mmm-HH:MM:SS.mmm"` — never downloads the whole video first.
-- MP4 with video + audio, optional MP3, quality limited to resolutions the source actually offers, and a precise-cutting toggle using `--force-keyframes-at-cuts`.
-- Safe output naming, automatic `(2)` suffixes instead of overwriting, and FFprobe verification of every finished file.
-- Repo-backed global info in the center of the topbar: every installation polls `src/config/global-info.json` in this repository and shows the latest committed message without an app update. Only repository owners can edit the file; users have no UI to create, edit, time out or dismiss it. Action feedback remains transient in the separate toast stack.
-- Synthesised interface sounds are on by default (short local Web Audio cues for notices, cut marks and completed downloads), with a one-click topbar mute and a Settings toggle. No audio files are downloaded or stored.
-- Motion throughout — persistent info sweep/pulse, staggered panels and steps, cut/download rows, deck entrance, play pulse, progress sheen, live indicator and subtle button/brand feedback — all transform/opacity based and disabled under `prefers-reduced-motion`.
-- Settings for output folder, defaults, concurrency, theme, interface sounds, and explicit yt-dlp / FFmpeg / FFprobe paths with real version detection.
-- Browser-based YouTube authentication for Chrome, Edge, Firefox, Brave, and Chromium via `--cookies-from-browser`, with optional profile selection. It is off by default and only reads cookies after the user enables it.
-- In-app authentication test that performs a real YouTube metadata request with the selected browser session and reports precise failures.
-- Checksum-verified yt-dlp updates from the official GitHub release, installed into the app's own folder; an optional PO Token provider plugin folder for videos that require one.
-- Nothing is uploaded, tracked, or installed silently. No cookies or browser data are accessed unless authentication is explicitly enabled.
+---
 
-## Requirements
+## What it is
 
-- Windows 10/11 with WebView2 (present on modern Windows).
-- **yt-dlp**, **FFmpeg**, and **FFprobe** installed on PATH or selected manually in Settings.
+YT Cutter is a small desktop app for slicing pieces out of YouTube videos. It downloads only the sections you choose, keeps the files on your machine, and never asks you to upload anything.
 
-  ```powershell
-  winget install yt-dlp.yt-dlp
-  winget install Gyan.FFmpeg
-  ```
+It started as a way to avoid the usual dance of downloading a full video, scrubbing through it elsewhere, and throwing away 95% of the file. The player, timeline, and export queue live in one window.
 
-YT Cutter never installs tools silently. It detects tools, shows their versions, and refuses to save a path that is not executable. The only download it performs is an explicit, SHA-256 verified yt-dlp update requested by the user in Settings.
+## A few screenshots
 
-### Global notice
+| | |
+| --- | --- |
+| <img src="docs/images/cut-workspace.png" alt="Cut rows and transport controls" width="100%"> | <img src="docs/images/dark-mode.png" alt="YT Cutter in dark mode" width="100%"> |
+| In/out points, overlap warnings, chapter cuts, and one-click fixes. | Pure black dark mode with the same controls and red accents. |
 
-Edit [`src/config/global-info.json`](src/config/global-info.json) in the repository and commit/push it. Every running app checks the GitHub contents endpoint for that file on launch, every 5 minutes, and whenever the window regains focus (with a 30-second anti-spam guard). A new message appears in the topbar within one poll; no rebuild or reinstall is needed. The last good message is cached for offline use, and the bundled copy is the final fallback.
+The images are captures from the app itself, framed the same way so the paper, ink, and red stay consistent.
+
+## Install
+
+Grab the installer from `src-tauri/target/release/bundle/nsis/YT Cutter_1.9.0_x64-setup.exe` after building, or use an existing release.
+
+Current build: 2,569,623 bytes · SHA-256 `C3091F06BF1724DE4C09EACB5AFFCC66958304A01ACECFD90E67F6D532A502A9`.
+
+You need:
+
+- Windows 10 or 11 with WebView2
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+- FFmpeg and FFprobe
+
+The quickest way to get the tools:
+
+```powershell
+winget install yt-dlp.yt-dlp
+winget install Gyan.FFmpeg
+```
+
+You can also point YT Cutter at tools you already have in Settings. It checks the paths and shows the version before saving them. Nothing gets installed quietly.
+
+## Using it
+
+1. Paste a YouTube URL and load the video.
+2. Scrub to a starting point, then press **Mark in** and **Mark out** — or use `+10s`, `+30s`, or `+60s` for a quick cut.
+3. Add as many cuts as you need. Drag the edges, type exact timecodes, or turn a chapter into a cut.
+4. Pick MP4 or MP3, choose an output folder, and start the queue.
+
+Each cut is downloaded as its own section with `yt-dlp --download-sections "*HH:MM:SS.mmm-HH:MM:SS.mmm"`. The whole video is not downloaded first. Finished files are checked with FFprobe, and existing names get a `(2)` suffix instead of being overwritten.
+
+If two cuts overlap, the row shows an **OVERLAP** badge and a **Fix / trim** button. Pressing it trims the later cut back to the previous cut's end.
+
+## The details
+
+**Player**
+
+- Custom player with a 52px control deck, buffered scrubber, cut markers, IN→OUT zone, ±5s skips, speed control, volume, loop, and fullscreen.
+- Timecodes use `HH:MM:SS.mmm` and tabular numerals, so the numbers stay aligned while they change.
+- Playhead movement uses GPU-composited transforms. The width is cached with a `ResizeObserver`; no layout reads happen in the animation frame.
+- Embedded player blocked? The app shows the thumbnail and an **Open on YouTube** fallback. Cuts can still be made by typing timestamps.
+
+**Cuts and export**
+
+- Multiple cuts with draggable edges, reordering, renaming, and deletion.
+- Chapter-aware navigation and one-click chapter-to-cut conversion when the uploader supplied chapters.
+- Merged cuts are downloaded one section at a time and joined with FFmpeg's concat demuxer. yt-dlp only honors the first range when several `--download-sections` flags are passed.
+- Optional **Precise cutting** uses `--force-keyframes-at-cuts` for tighter starts. It is slower, so it is off by default.
+- Queue with concurrency limit, progress, speed, ETA, cancel, retry, and removal.
+
+**Desktop behavior**
+
+- Frameless title bar with minimize, maximize, and close.
+- Settings for output folder, defaults, concurrency, theme, interface sounds, and explicit tool paths with real version detection.
+- Interface sounds are on by default. Mute from the topbar or Settings; the choice is saved.
+- Animations use transform and opacity only, and they respect `prefers-reduced-motion`.
+- Dark mode resolves to true black (`#000000`).
+
+**Sign-in**
+
+Browser cookies are off by default. If YouTube asks for sign-in confirmation, open **Settings → YouTube Authentication**, enable cookies for the browser you use, save, and press **Test**. The test makes a real YouTube metadata request and never stores or displays the cookies.
+
+If a video needs a Proof of Origin Token, **Install provider** fetches the official `bgutil-ytdlp-pot-provider` release, checks its digest and pinned source archive, builds it with local Node.js 22+, and starts the helper on `127.0.0.1:4416`. YT Cutter never stores tokens. See the [official PO Token guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide).
+
+Node.js 22+ is also required for YouTube downloads because yt-dlp uses it to solve YouTube's JavaScript `n` challenge. YT Cutter passes `--js-runtimes node` on YouTube requests.
+
+## Global notice
+
+Edit [`src/config/global-info.json`](src/config/global-info.json) and push it. Every installed app checks that file through the GitHub contents API on launch, every five minutes, and when the window regains focus. A new message appears without a rebuild or reinstall.
 
 ```json
 {
@@ -49,61 +108,36 @@ Edit [`src/config/global-info.json`](src/config/global-info.json) in the reposit
 }
 ```
 
-`tone` can be `info`, `success`, or `warning`. Set `enabled` to `false` for a quiet “Ready” indicator. Because the repo is public but only the owner has write access, everyone receives the message and only you can change it.
+`tone` accepts `info`, `success`, or `warning`. `enabled: false` shows a quiet **Ready** state. The repo is public so everyone can receive notices, but only the owner can write to it. Users get no composer, dismiss button, or timeout. The last good message is cached for offline use; the bundled copy is the final fallback.
 
-### YouTube sign-in
-
-If YouTube asks for sign-in confirmation, open Settings → **YouTube Authentication**, enable browser cookies, choose the browser you are signed in to, save, and press **Test**. The test reads that browser's YouTube cookies through yt-dlp and verifies the result by fetching a real video title — it never stores or displays cookies. If the browser's cookie database is locked, close and reopen the browser and test again.
-
-If YouTube requires a Proof of Origin Token, Settings → YouTube Authentication → **Install provider** downloads the official `bgutil-ytdlp-pot-provider` release, verifies its checksum against the GitHub release digest, verifies the pinned source archive, builds it with the locally installed Node.js (22+), starts the local server on `127.0.0.1:4416`, and points yt-dlp at it. The server auto-starts on app launch and stops on exit; it can also be started/stopped manually in Settings. No tokens are stored by YT Cutter. See the [official PO Token guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide).
-
-Node.js 22 or newer is also required for YouTube downloads: yt-dlp uses it to solve YouTube's JavaScript `n` challenge. YT Cutter passes `--js-runtimes node` automatically on every YouTube request.
-
-## Development
+## Build from source
 
 ```powershell
 npm install
-npm run dev          # frontend only in a browser, with a dev-only mock backend
+npm run dev          # frontend only, with a dev mock backend
 npm run tauri dev    # full app with the Rust backend
+npm run tauri build  # NSIS installer
 ```
 
-Production build (produces the NSIS installer):
-
-```powershell
-npm run tauri build
-```
-
-Installer: `src-tauri/target/release/bundle/nsis/YT Cutter_0.1.7_x64-setup.exe`.
-
-### Toolchain note
-
-This workspace was built with the user-space `stable-x86_64-pc-windows-gnu` Rust toolchain plus winlibs MinGW because MSVC Build Tools are not installed. Add these to `PATH` for any Cargo/Tauri command:
+This workspace was built with the GNU Rust toolchain and winlibs MinGW because MSVC Build Tools were not installed. Add these to `PATH` for Cargo or Tauri commands:
 
 ```powershell
 $env:Path = "$env:USERPROFILE\.cargo\bin;.\setup\mingw\mingw64\bin;$env:Path"
 ```
 
-MSVC (`stable-x86_64-pc-windows-msvc` + VS Build Tools) is the officially supported Tauri target and is recommended for a normal development setup. On this GNU toolchain, `cargo test` links the test harness with an incompatible manifest; use MSVC to run the unit tests. The application itself builds, links, and launches correctly with GNU.
+MSVC is the officially supported Tauri target and is recommended for a normal setup. On GNU, `cargo test` links the test harness with an incompatible manifest; use `cargo check --tests` instead. The app itself builds and runs correctly with GNU.
 
-## Verification performed
+## Checks I ran
 
-- `npx tsc --noEmit` and `npm run build` pass.
-- `cargo check` is warning-free; `npx tauri build` produces a working `yt-cutter.exe` and NSIS installer. The app window launches successfully.
-- Unit tests cover URL canonicalization, `HH:MM:SS.mmm` formatting, filename sanitization, non-overwriting paths, progress-line parsing, browser auth argument construction (including `BROWSER:PROFILE` and plugin dirs), error-code mapping, and yt-dlp release version comparison.
-- UI flows were checked in a browser against a dev-only mock backend: loading a video, adding/editing multiple cuts, live queue progress, cancellation, the settings drawer, browser authentication controls, and the authentication test result.
-- Browser cookie arguments were verified against the real yt-dlp binary for Chrome, Edge and Firefox, including profile and nonexistent-profile cases. The official GitHub release metadata and SHA-256 checksum format used by the updater were verified directly.
-- The PO Token provider installer flow was verified against the official release archives: checksums, extraction layout, `npm ci`, `npx tsc`, server startup, and yt-dlp actually loading `bgutil:http-2.0.2` and generating a token.
-- The real section-download and MP3 pipelines were exercised end-to-end with a public MP4 source.
-- The YouTube `n` challenge was diagnosed as a missing JavaScript runtime. yt-dlp now receives `--js-runtimes node` on every YouTube request; the CLI and packaged app were verified with Firefox cookies, a generated PO Token, 18 returned formats, and a real authenticated 3-second section download.
-- The 0.1.7 custom player, timeline and export refactor was verified in the packaged app with UI Automation: a signed-in YouTube section was previewed, two cuts were marked, merged into one file, and saved as `Me at the zoo - Clip 01 (merged).mp4` with both video and audio streams and a duration of 3.75s. yt-dlp only applies the first range when multiple `--download-sections` are supplied, so merged cuts are now downloaded one section at a time and joined with ffmpeg's concat demuxer (stream copy). The provider auto-started on port 4416 and stopped cleanly when the app closed.
-- The repo-backed topbar info and sound defaults were verified in the packaged app with UI Automation: the centered notice is present on launch with no composer or dismiss control, and the sound toggle starts on ("Mute interface sounds") and persists changes to `soundEffects` in settings. A one-file commit to `src/config/global-info.json` was pushed to GitHub and the running app showed the new message on its next load without a rebuild; restoring the file and pushing again restored the message the same way. Offline installs fall back to the cached message, then the bundled copy.
-- The player scrubber playhead is positioned in pixels cached by a `ResizeObserver` (a percentage translate moved it relative to its own 2px box, so it appeared frozen). Verified in the rebuilt app: the red line moved from x=2 to x=411 over 8s of a 19s video. The dark theme now resolves to pure `#000000` for the app background and surfaces (`getComputedStyle(document.body).backgroundColor` returns `rgb(0, 0, 0)`).
-- The final editorial deck and cut-grid pass was verified in the rebuilt packaged app with UI Automation: a signed-in `Me at the zoo` video loaded with its chapter metadata, the 52px single-row deck exposed skip/rendered buffered scrubber controls, `+10s` created a cut from the playhead, overlapping cuts showed inline `OVERLAP` badges and `Fix / trim` trimmed the later cut to the previous end, and `+ Chapter cut` added the `Intro` chapter as a cut. Downloading that chapter cut completed as `Me at the zoo - Clip 03.mp4` with AV1 video + AAC audio and a duration of 5.02s. All cut-row controls stayed inside the 943px studio column (last action button ended at x=1626 inside a x=1634 frame).
+- `npx tsc --noEmit`, `npm run build`, `cargo check --tests`, and `npx tauri build` pass.
+- Unit tests cover URL parsing, timecode formatting, filename safety, non-overwriting paths, progress parsing, browser auth arguments, error codes, and yt-dlp version comparison.
+- In the packaged app, I loaded a signed-in `Me at the zoo` video, marked cuts, fixed an overlap, added a chapter cut, and downloaded it as `Me at the zoo - Clip 03.mp4` — AV1 + AAC, 5.02s. A merged two-section export also came out as a valid 3.75s MP4.
+- The playhead was watched moving from x=2 to x=411 over 8 seconds of a 19-second video. Dark mode was checked in the browser console: `rgb(0, 0, 0)`.
+- I pushed a one-line notice change to `global-info.json` and the running app picked it up on its next load. Pushing the original message back restored it the same way.
+- yt-dlp checksums, the PO Token provider archives, and a real authenticated section download were all checked against the official releases and YouTube.
 
-Browser cookie access remains opt-in and cookies are never stored or displayed. If a browser's cookie database is locked, close and reopen that browser and test again. Node.js 22+ is required so yt-dlp can solve YouTube's JavaScript challenge.
+## Limits
 
-## Notes and limits
-
-- Without `--force-keyframes-at-cuts`, section boundaries may include a small amount of extra video near keyframes. Enable **Precise cutting** for frame-accurate starts (slower).
-- If an embedded player is blocked by the uploader or network, the UI shows the thumbnail and an "Open on YouTube" fallback. Cuts can still be created with the **Add cut** button and typed timestamps.
-- Use the app only for videos you own or have permission to download.
+- Without **Precise cutting**, section boundaries may include a little extra video near keyframes.
+- Browser cookie databases sometimes stay locked while the browser is running. Close the browser and try the auth test again.
+- Use this only for videos you own or have permission to download.

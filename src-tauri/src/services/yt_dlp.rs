@@ -219,9 +219,7 @@ mod tests {
     }
 }
 
-/// Build the documented `--cookies-from-browser BROWSER[:PROFILE][::CONTAINER]`
-/// value, or `None` when browser authentication is disabled. The value is passed
-/// to yt-dlp as a single argument; it is never placed in a shell command.
+/// Build the `--cookies-from-browser` value, if auth is enabled.
 pub fn cookie_source(settings: &Settings) -> Option<String> {
     if !settings.auth_enabled {
         return None;
@@ -244,10 +242,7 @@ pub fn cookie_source(settings: &Settings) -> Option<String> {
     Some(source)
 }
 
-/// Append the required YouTube JS runtime, browser authentication and optional
-/// PO Token plugin arguments to any yt-dlp invocation that talks to YouTube.
-/// YouTube's `n` challenge cannot be solved without a JS runtime. FFmpeg never
-/// receives these args.
+/// Add YouTube-specific yt-dlp args: JS runtime, auth, and PO Token plugin.
 pub fn auth_args(settings: &Settings, args: &mut Vec<String>) {
     args.push("--js-runtimes".into());
     args.push("node".into());
@@ -316,10 +311,7 @@ pub fn tail(text: &str, lines: usize) -> String {
     collected.join("\n")
 }
 
-/// Translate yt-dlp's stderr into an actionable, human message.
-///
-/// `auth_enabled` lets sign-in and cookie failures point at the right Settings
-/// section instead of suggesting a terminal workaround.
+/// Map yt-dlp errors to a user-facing message.
 pub fn map_error(stderr: &str, exit_context: &str, auth_enabled: bool) -> CommandError {
     let lower = strip_ansi(stderr).to_lowercase();
     let detail = tail(stderr, 8);
@@ -502,8 +494,7 @@ pub fn map_error(stderr: &str, exit_context: &str, auth_enabled: bool) -> Comman
     CommandError::new(code, message).with_detail(detail)
 }
 
-/// Same mapping, with the selected profile taken into account so a missing
-/// profile can be told apart from a browser with no YouTube cookies at all.
+/// Map profile-related auth failures separately.
 pub fn map_error_for_settings(
     stderr: &str,
     exit_context: &str,

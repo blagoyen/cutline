@@ -112,9 +112,7 @@ export function VideoStage({
     [durationMs],
   );
 
-  // Cache the strip width so the rAF loop never reads layout. A percentage
-  // translate would move the playhead relative to its own 2px box, so the
-  // position must be expressed in pixels of the scrubber.
+  // Cache the scrubber width in pixels; percentage transforms move the wrong box.
   useEffect(() => {
     const strip = scrubRef.current;
     if (!strip) return;
@@ -127,8 +125,7 @@ export function VideoStage({
     return () => observer.disconnect();
   }, [video]);
 
-  // One rAF loop drives the playhead, buffered bar and the timecode text node.
-  // Nothing here calls setState, so playback never re-renders the cuts list.
+  // One rAF loop updates the playhead and timecode without React state.
   useEffect(() => {
     let frame = 0;
     const tick = () => {
@@ -177,7 +174,7 @@ export function VideoStage({
     tip.style.transform = `translate3d(${clamp(local - 44, 0, Math.max(0, rect.width - 88))}px, 0, 0)`;
   };
 
-  // Pointer scrubbing is rAF-throttled; the visual playhead is updated above.
+  // Scrubbing is throttled with rAF; the playhead updates above.
   const draggingRef = useRef(false);
   const dragXRef = useRef(0);
   const dragFrameRef = useRef(0);

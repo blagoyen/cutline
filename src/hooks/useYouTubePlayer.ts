@@ -158,7 +158,7 @@ export function useYouTubePlayer(
           videoId,
           playerVars: {
             autoplay: 0,
-            // The app supplies every control; YouTube chrome stays hidden.
+            // Hide YouTube controls; the app draws its own.
             controls: 0,
             disablekb: 1,
             modestbranding: 1,
@@ -182,7 +182,7 @@ export function useYouTubePlayer(
                 player.setVolume(volumeRef.current);
                 player.setPlaybackRate(rateRef.current);
               } catch {
-                /* Older players may not expose these methods yet. */
+                /* Some players lack these methods. */
               }
               applyState({
                 ready: true,
@@ -239,11 +239,7 @@ export function useYouTubePlayer(
     };
   }, [videoId, hostRef, applyState]);
 
-  /**
-   * The playhead lives in a ref and is sampled once per animation frame. React
-   * state is only touched when low-frequency metadata actually changes, so
-   * scrubbing never re-renders the cut list, export bar or download history.
-   */
+  /* Keep the playhead in a ref so playback does not re-render React. */
   useEffect(() => {
     if (!videoId) return;
     let frame = 0;
@@ -260,7 +256,7 @@ export function useYouTubePlayer(
               loadedFractionRef.current = Math.min(1, Math.max(0, buffered));
             }
           } catch {
-            /* Older players may not expose buffering information. */
+            /* Buffering info may be missing. */
           }
 
           const loop = loopRef.current;
@@ -325,7 +321,7 @@ export function useYouTubePlayer(
     currentMsRef.current = safe;
   }, []);
 
-  /** Quick skip relative to the playhead, clamped to the loaded duration. */
+  /** Skip relative to the playhead, clamped to the video duration. */
   const skipMs = useCallback(
     (deltaMs: number) => {
       let limit = stateRef.current.durationMs;
@@ -335,7 +331,7 @@ export function useYouTubePlayer(
           limit = Math.round(duration * 1000);
         }
       } catch {
-        /* Player not ready yet; state duration is the best available bound. */
+        /* Player not ready; use the reported duration. */
       }
       const next = currentMsRef.current + deltaMs;
       seekMs(limit > 0 ? Math.min(limit, Math.max(0, next)) : Math.max(0, next));

@@ -10,12 +10,7 @@ export interface GlobalInfo {
   updatedAt: string;
 }
 
-/**
- * The notice is published by editing `src/config/global-info.json` in this
- * repository and committing it. Every installed app polls this GitHub contents
- * endpoint, so no rebuild or reinstall is needed. Only repository owners can change the file;
- * everyone else gets read-only access to the rendered message.
- */
+/** GitHub contents URL for the shared topbar notice. */
 export const GLOBAL_INFO_URL =
   "https://api.github.com/repos/blagoyen/yt-cutter/contents/src/config/global-info.json";
 
@@ -34,7 +29,7 @@ const TONES: GlobalInfoTone[] = ["info", "success", "warning"];
 const text = (value: unknown, max: number) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
 
-/** Never trust raw remote content: validate shape, length and tone. */
+/** Validate the remote notice before using it. */
 export function normalizeGlobalInfo(value: unknown): GlobalInfo | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;

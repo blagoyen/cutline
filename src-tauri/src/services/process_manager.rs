@@ -51,7 +51,7 @@ where
     String::from_utf8_lossy(&buffer).into_owned()
 }
 
-/// Run a tool to completion, capturing stdout/stderr, with a hard timeout.
+/// Run a tool and capture its output, with a timeout.
 pub async fn run_capture(
     program: &Path,
     args: &[String],
@@ -60,7 +60,7 @@ pub async fn run_capture(
     run_capture_in(program, args, timeout, None).await
 }
 
-/// Same as `run_capture`, with an optional working directory.
+/// Same as `run_capture`, with a working directory.
 pub async fn run_capture_in(
     program: &Path,
     args: &[String],

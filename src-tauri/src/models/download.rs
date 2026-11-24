@@ -21,8 +21,7 @@ impl DownloadStatus {
     }
 }
 
-/// One time range in a yt-dlp section download. Several ranges can be merged
-/// into a single output request by passing more than one section.
+/// One time range in a download. Multiple sections are downloaded separately and joined afterward.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DownloadSection {

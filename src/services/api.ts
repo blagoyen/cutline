@@ -48,10 +48,7 @@ function normalize(error: unknown): ApiError {
   });
 }
 
-/**
- * In `npm run dev` outside Tauri there is no Rust backend, so a small mock keeps
- * the interface usable for design work. Native builds always take the real path.
- */
+/** Mock backend for browser dev mode. */
 const useMock = import.meta.env.DEV && !("__TAURI_INTERNALS__" in window);
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {

@@ -27,15 +27,11 @@ function writeCached(info: GlobalInfo) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(info));
   } catch {
-    // Private/blocked storage still gets the in-memory and bundled notice.
+    // Storage may be unavailable; keep the bundled notice.
   }
 }
 
-/**
- * Polls the repo-owned notice file. The bundled copy is the offline fallback;
- * the last successful fetch is cached so a restart before the first check still
- * shows the newest message the user has seen.
- */
+/** Loads the shared notice, falling back to cached or bundled copy. */
 export function useGlobalInfo() {
   const [info, setInfo] = useState<GlobalInfo>(() => readCached() ?? BUNDLED_GLOBAL_INFO);
   const [status, setStatus] = useState<GlobalInfoStatus>(() => (readCached() ? "cached" : "local"));

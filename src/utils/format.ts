@@ -12,7 +12,7 @@ export function formatTimecode(ms: number, withMillis = true): string {
   return withMillis ? `${base}.${pad(millis, 3)}` : base;
 }
 
-/** Compact duration for chips: `0:33`, `12:04`, `1:02:03`. */
+/** Short duration, e.g. 0:33 or 1:02:03. */
 export function formatDuration(ms: number): string {
   const safe = Math.max(0, Math.round(ms));
   const totalSeconds = Math.round(safe / 1000);
@@ -28,10 +28,7 @@ export interface ParsedTime {
   error: string | null;
 }
 
-/**
- * Accepts `75`, `1:15`, `01:15.5` and `00:01:15.500`.
- * Returns integer milliseconds so no float drift creeps into cut points.
- */
+/** Accepts 75, 1:15, 01:15.5, or 00:01:15.500; returns integer ms. */
 export function parseTimecode(input: string): ParsedTime {
   const raw = input.trim().replace(",", ".");
   if (!raw) {
@@ -108,11 +105,7 @@ export function qualityLabel(quality: string): string {
   return quality.toUpperCase();
 }
 
-export function sanitizeForDisplay(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-/** Compact readout for transport chips: `42.35`, `2:42.35`, `1:02:42.35`. */
+/** Short timecode for small controls, e.g. 2:42.35. */
 export function formatShortTimecode(ms: number): string {
   const safe = Math.max(0, Math.round(ms));
   const centis = Math.floor((safe % 1000) / 10);
@@ -134,7 +127,6 @@ export const NAMING_TEMPLATES = [
 
 export type NamingTemplate = (typeof NAMING_TEMPLATES)[number];
 
-/** Resolve a batch filename template without ever touching cookies or uploads. */
 export function applyNamingTemplate(
   template: string,
   title: string,

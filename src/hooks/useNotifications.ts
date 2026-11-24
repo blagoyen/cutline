@@ -5,16 +5,13 @@ import { useSoundEffects, type SoundCue } from "./useSoundEffects";
 export const noticeLifetime = (tone: ToastTone) => (tone === "error" ? 10_000 : 7_000);
 
 interface NotifyOptions {
-  /** Suppress the cue for a message that already has its own sound. */
+  /** Skip the sound when the caller already played one. */
   silent?: boolean;
-  /** Override the automatic lifetime in milliseconds. */
+  /** Time before the notice disappears. */
   lifetime?: number;
 }
 
-/**
- * One global message bus. Every caller publishes through `notify`; the topbar
- * center and the toast stack are just two views of the same queue.
- */
+/** Keeps notices for the topbar and toast stack. */
 export function useNotifications(soundEnabled: boolean) {
   const [items, setItems] = useState<AppNotice[]>([]);
   const counterRef = useRef(0);

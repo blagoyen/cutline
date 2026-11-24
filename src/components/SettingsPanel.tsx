@@ -347,8 +347,7 @@ export function SettingsPanel({
                 </button>
               </div>
               <p className="field-hint">
-                Existing files are never overwritten — YT Cutter adds “(2)” instead. Names follow the
-                pattern chosen in the export bar.
+                Existing files get a “(2)” suffix. Batch names follow the export bar setting.
               </p>
             </div>
 
@@ -651,7 +650,7 @@ export function SettingsPanel({
                   <p className="field-hint">
                     Sign in to YouTube in that browser first. If its cookie database is locked, close
                     the browser completely and retry. Save changes, then Test authentication to
-                    verify a real YouTube request — it uses the loaded video by default.
+                    check the browser session against YouTube — it uses the loaded video by default.
                   </p>
                 </div>
 
@@ -722,8 +721,8 @@ export function SettingsPanel({
             </div>
             {updateMessage ? <p className="field-hint update-message">{updateMessage}</p> : null}
             <p className="field-hint">
-              Updates come from the official yt-dlp GitHub release, are SHA-256 verified, and are
-              installed into this app's own folder — a system-installed copy is never replaced.
+              Updates are downloaded from GitHub, checked with SHA-256, and installed in the app
+              folder. A system-wide yt-dlp is left alone.
             </p>
             <ToolField
               label="FFmpeg"
@@ -743,7 +742,7 @@ export function SettingsPanel({
             />
 
             <p className="field-hint field-hint-block">
-              YT Cutter never downloads executables on its own. Install the tools with{" "}
+              Install the cutting tools with{" "}
               <code>winget install yt-dlp.yt-dlp</code> and <code>winget install Gyan.FFmpeg</code>,
               or point to an existing copy above.
             </p>
@@ -785,8 +784,7 @@ export function SettingsPanel({
               <div>
                 <span className="field-label">Interface sounds</span>
                 <p className="field-hint">
-                  Short local cues for notices, cuts and completed downloads. No audio is downloaded
-                  or stored.
+                  Short cues generated in the browser.
                 </p>
               </div>
               <button
@@ -806,7 +804,7 @@ export function SettingsPanel({
             <h3 className="drawer-section-title">About</h3>
             <div className="about-row">
               <span>Version</span>
-              <b>{version || "0.1.0"}</b>
+              <b>{version || "1.9.0"}</b>
             </div>
             <div className="about-row">
               <span>Processing</span>
@@ -817,8 +815,8 @@ export function SettingsPanel({
               <b>Optional browser session</b>
             </div>
             <p className="field-hint">
-              Nothing is uploaded, tracked, or stored in the cloud. Use YT Cutter only for videos
-              you own or have permission to download.
+              Processing stays on this device. Use only videos you own or have permission to
+              download.
             </p>
           </section>
         </div>
@@ -827,7 +825,7 @@ export function SettingsPanel({
           {error ? <p className="form-error">{error}</p> : null}
           <div className="drawer-foot-actions">
             <span className="drawer-foot-note">
-              <Check size={12} strokeWidth={2.4} /> Settings stay on this device
+              <Check size={12} strokeWidth={2.4} /> Local settings
             </span>
             <div className="drawer-foot-buttons">
               <button type="button" className="btn btn-ghost" onClick={onClose}>

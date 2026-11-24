@@ -1,10 +1,8 @@
 use serde::Serialize;
 
-/// Structured error returned to the frontend for every command.
+/// Error returned by a Tauri command.
 ///
-/// `code` is a stable machine identifier the UI can branch on, `message` is a
-/// short human readable explanation and `detail` optionally carries the raw
-/// tool output for the expandable "technical details" section.
+/// `code` is for the UI, `message` is user-facing, `detail` holds raw tool output.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandError {

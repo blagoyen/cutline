@@ -126,7 +126,7 @@ fn parse_chapters(value: &Value, duration_ms: u64) -> Vec<Chapter> {
     chapters
 }
 
-/// Turn `yt-dlp -J` output into the compact structure the UI needs.
+/// Convert `yt-dlp -J` output into UI video info.
 pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
     let mut target = value;
 
@@ -191,7 +191,7 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
     })
 }
 
-/// Parse the JSON emitted by `yt-dlp -J` with a helpful fallback error.
+/// Parse `yt-dlp -J` JSON.
 pub fn parse_json(bytes: &[u8]) -> Result<Value, CommandError> {
     serde_json::from_slice::<Value>(bytes).map_err(|err| {
         CommandError::new(

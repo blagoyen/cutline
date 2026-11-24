@@ -337,7 +337,7 @@ export default function App() {
     setLoopEnabled((previous) => !previous);
   }, []);
 
-  /** One-click fixed-length cuts from the mark-in point or the live playhead. */
+  /** Add a fixed-length cut. */
   const quickCut = useCallback(
     (lengthMs: number) => {
       if (!video || durationMs <= 0) return;
@@ -386,7 +386,7 @@ export default function App() {
     [clips.length, toast],
   );
 
-  /** Trim later cuts so no range overlaps the previous one and none is zero-length. */
+  /** Trim cuts so they do not overlap or become zero-length. */
   const fixOverlaps = useCallback(() => {
     if (clips.length === 0) return;
     let cursor = 0;

@@ -51,13 +51,13 @@ pub struct Settings {
     pub pot_plugin_dir: Option<String>,
     pub pot_server_dir: Option<String>,
     pub pot_provider_enabled: bool,
-    /// Browser authentication is opt-in; cookies are never read unless enabled.
+    /// Cookies are read only when browser auth is enabled.
     pub auth_enabled: bool,
     pub auth_browser: String,
     /// yt-dlp profile value, e.g. "Profile 1" (Chromium) or a Firefox profile name.
     pub auth_profile: Option<String>,
     pub theme: String,
-    /// Short, locally synthesised interface sounds. On by default.
+    /// Interface sounds; on by default.
     pub sound_effects: bool,
 }
 
@@ -87,7 +87,7 @@ impl Default for Settings {
 }
 
 impl Settings {
-    /// Coerce arbitrary input (frontend / edited JSON file) into a valid state.
+    /// Normalize settings loaded from the UI or disk.
     pub fn sanitized(mut self) -> Self {
         self.default_quality = normalize_quality(&self.default_quality);
         self.default_format = normalize_format(&self.default_format);

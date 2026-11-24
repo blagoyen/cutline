@@ -44,10 +44,10 @@ const GLOBAL_ICONS = {
   warning: AlertCircle,
 } as const;
 
-/** True only inside the native shell; the browser dev server has no window API. */
+/** Tauri window API is available only in the native build. */
 const isNative = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-/** Minimal surface used by the custom title bar (structural, avoids API type coupling). */
+/** Window methods used by the title bar. */
 type WindowHandle = {
   minimize: () => Promise<void>;
   toggleMaximize: () => Promise<void>;

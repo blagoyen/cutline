@@ -244,7 +244,7 @@ async fn check(tool: Tool, settings: &Settings) -> DependencyInfo {
     }
 }
 
-/// Verify all three tools in parallel and report their real versions.
+/// Check all three tools and return their versions.
 pub async fn check_dependencies(settings: &Settings) -> DependencyReport {
     let (yt_dlp, ffmpeg, ffprobe) = tokio::join!(
         check(Tool::YtDlp, settings),

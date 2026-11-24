@@ -57,7 +57,7 @@ pub struct ProviderInstall {
 fn client() -> CmdResult<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(300))
-        .user_agent("YT-Cutter-Updater/0.1.7")
+        .user_agent("YT-Cutter-Updater/1.9.0")
         .build()
         .map_err(|err| CommandError::new("HTTP_CLIENT_FAILED", "Could not start the provider installer.").with_detail(err.to_string()))
 }
@@ -135,8 +135,7 @@ fn port_open() -> bool {
         .any(|address| TcpStream::connect_timeout(&address, Duration::from_millis(700)).is_ok())
 }
 
-/// Status shown in Settings. `running` reflects a successful local connection,
-/// not merely a stored PID.
+/// Provider status for Settings.
 pub fn status(settings: &Settings, pid: &std::sync::Mutex<Option<u32>>) -> ProviderStatus {
     let installed = settings
         .pot_server_dir
@@ -163,8 +162,7 @@ pub fn status(settings: &Settings, pid: &std::sync::Mutex<Option<u32>>) -> Provi
     }
 }
 
-/// Explicitly download, verify, extract and build the official provider.
-/// Nothing is installed until the user presses the Settings button.
+/// Download and build the pinned PO Token provider.
 pub async fn install(app: &tauri::AppHandle) -> CmdResult<ProviderInstall> {
     let http = client()?;
     let info = release(&http).await?;
@@ -279,8 +277,7 @@ pub async fn install(app: &tauri::AppHandle) -> CmdResult<ProviderInstall> {
     })
 }
 
-/// Start the local provider server. The child process is deliberately kept
-/// alive after the spawning command returns; only its PID is stored.
+/// Start the provider server in the background; keep only its PID.
 pub async fn start(
     settings: &Settings,
     pid: &std::sync::Mutex<Option<u32>>,

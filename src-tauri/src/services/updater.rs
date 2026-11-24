@@ -44,7 +44,7 @@ pub struct UpdateResult {
 fn client() -> CmdResult<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(180))
-        .user_agent("YT-Cutter-Updater/0.1.7")
+        .user_agent("YT-Cutter-Updater/1.9.0")
         .build()
         .map_err(|err| {
             CommandError::new("HTTP_CLIENT_FAILED", "Could not start the update check.")
@@ -115,7 +115,7 @@ pub fn newer(latest: &str, current: Option<&str>) -> bool {
     latest > current
 }
 
-/// Query the official GitHub release. Nothing is downloaded or replaced here.
+/// Check GitHub for a newer yt-dlp release.
 pub async fn check(settings: &Settings) -> CmdResult<UpdateInfo> {
     let http = client()?;
     let release = latest_release(&http).await?;
@@ -128,8 +128,7 @@ pub async fn check(settings: &Settings) -> CmdResult<UpdateInfo> {
     })
 }
 
-/// Download, verify, and install the official Windows binary into the app's
-/// own config folder. A system-installed yt-dlp is never overwritten.
+/// Install the Windows yt-dlp binary into the app config folder.
 pub async fn install(app: &tauri::AppHandle, settings: &Settings) -> CmdResult<UpdateResult> {
     let http = client()?;
     let release = latest_release(&http).await?;

@@ -14,8 +14,7 @@ pub struct FormatInfo {
     pub note: Option<String>,
 }
 
-/// A YouTube chapter, when the uploader supplied them. Used for quick jumps and
-/// one-click chapter-to-cut conversion; no extra network request is needed.
+/// YouTube chapter metadata, used for jumps and chapter cuts.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Chapter {

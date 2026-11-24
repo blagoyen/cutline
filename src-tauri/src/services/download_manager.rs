@@ -142,10 +142,7 @@ fn stage_marker(line: &str) -> bool {
         || line.contains("[EmbedThumbnail]")
 }
 
-/// Arguments are always passed as an array â€” user input is never shell-interpolated.
-/// Each section is downloaded on its own; yt-dlp's `--download-sections` only
-/// applies the first range when several are supplied, so multi-cut exports are
-/// downloaded one range at a time and joined with ffmpeg afterwards.
+/// Build yt-dlp args for one section. Sections are downloaded separately and joined with ffmpeg.
 fn build_args(
     task: &DownloadTask,
     section: &DownloadSection,
@@ -167,7 +164,7 @@ fn build_args(
         "--fragment-retries".into(),
         "10".into(),
         "--extractor-retries".into(),
-        // Authentication failures must not be silently retried over and over.
+        // Avoid retry loops on auth errors.
         if settings.auth_enabled { "0".into() } else { "3".into() },
         "--socket-timeout".into(),
         "20".into(),
@@ -194,7 +191,7 @@ fn build_args(
         args.push(dir.to_string_lossy().into_owned());
     }
 
-    // One central place for every YouTube-facing yt-dlp command.
+    // Add YouTube-specific yt-dlp args.
     yt_dlp::auth_args(settings, &mut args);
 
     if task.format == "mp3" {
@@ -222,8 +219,7 @@ fn build_args(
     args
 }
 
-/// Join individually downloaded sections into one output file using ffmpeg's
-/// concat demuxer (stream copy — no re-encode, no quality loss).
+/// Join sections with ffmpeg's concat demuxer (stream copy).
 async fn concat_sections(
     ffmpeg_bin: &Path,
     parts: &[PathBuf],
@@ -394,7 +390,7 @@ impl DownloadManager {
         Ok(task)
     }
 
-    /// Start queued downloads while respecting the concurrency limit.
+    /// Start queued downloads up to the concurrency limit.
     pub fn pump(self: &Arc<Self>) {
         loop {
             let max = lock(&self.settings).max_concurrent_downloads.max(1) as usize;
@@ -491,8 +487,7 @@ impl DownloadManager {
         self.pump();
     }
 
-    /// Download a single time range into `section_dir` and return the produced file.
-    /// Cancellation, progress and error mapping mirror the original single-cut path.
+/// Download one section and return the output file.
     #[allow(clippy::too_many_arguments)]
     async fn run_section(
         &self,

@@ -1,6 +1,6 @@
 export type ToastTone = "error" | "success" | "info";
 
-/** A message published through the global notification center. */
+
 export interface AppNotice {
   id: number;
   message: string;

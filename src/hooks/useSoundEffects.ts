@@ -10,7 +10,7 @@ type Note = {
   gain: number;
 };
 
-/** Short, synthesised cues — no audio assets, no network, no stored samples. */
+/** Web Audio cues generated in code. */
 const CUES: Record<SoundCue, Note[]> = {
   info: [
     { freq: 620, at: 0, duration: 0.08, type: "sine", gain: 0.04 },
@@ -28,10 +28,7 @@ const CUES: Record<SoundCue, Note[]> = {
   tick: [{ freq: 880, at: 0, duration: 0.045, type: "square", gain: 0.018 }],
 };
 
-/**
- * Lazily creates one AudioContext on the first sound (after a user gesture),
- * then closes it on unmount. Nothing is played when sounds are disabled.
- */
+/** Create the AudioContext on first use and close it on unmount. */
 export function useSoundEffects(enabled: boolean) {
   const contextRef = useRef<AudioContext | null>(null);
   const lastPlayRef = useRef(0);

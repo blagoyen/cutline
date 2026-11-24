@@ -2,10 +2,9 @@ import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import type { AppNotice } from "../types";
 
 export type { ToastTone } from "../types";
-export type ToastItem = AppNotice;
 
 interface ToastsProps {
-  toasts: ToastItem[];
+  toasts: AppNotice[];
   onDismiss: (id: number) => void;
 }
 
@@ -15,7 +14,7 @@ const ICONS = {
   info: Info,
 };
 
-function Toast({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
+function Toast({ toast, onDismiss }: { toast: AppNotice; onDismiss: (id: number) => void }) {
   const Icon = ICONS[toast.tone];
 
   return (

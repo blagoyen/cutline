@@ -9,8 +9,7 @@ use crate::models::Settings;
 use crate::services::{binaries, process_manager, yt_dlp};
 use crate::services::binaries::Tool;
 
-/// A small, stable public video used only to verify that yt-dlp can actually
-/// reach YouTube with the selected browser session. Nothing is downloaded.
+/// Public video used to test browser auth.
 const TEST_URL: &str = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
 
 #[derive(Debug, Clone, Serialize)]
@@ -42,8 +41,7 @@ pub struct BrowserProfileInfo {
     pub profiles: Vec<BrowserProfile>,
 }
 
-/// Locate a browser's user-data directory. This only reads directory names —
-/// no browser database or cookie value is ever opened here.
+/// Find a browser's user-data directory.
 fn user_data_dir(browser: &str) -> Option<PathBuf> {
     let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
     let roaming = std::env::var_os("APPDATA").map(PathBuf::from);
@@ -149,8 +147,7 @@ pub fn browser_profiles(browser: &str) -> BrowserProfileInfo {
     }
 }
 
-/// When a session has no playable formats, `--list-formats` still works and
-/// shows whether YouTube only handed back storyboard thumbnails.
+/// Storyboard-only results are not usable for downloads.
 async fn only_storyboards(bin: &Path, settings: &Settings, url: &str) -> bool {
     let mut args: Vec<String> = vec![
         "--ignore-config".into(),
@@ -179,9 +176,7 @@ async fn only_storyboards(bin: &Path, settings: &Settings, url: &str) -> bool {
             .any(|marker| text.contains(marker))
 }
 
-/// Verify the browser session with a real YouTube metadata request. Returning
-/// a title proves both cookie access and a successful YouTube request; finding
-/// cookies alone is deliberately not treated as success.
+/// Verify browser auth by fetching video metadata.
 pub async fn test_authentication(settings: &Settings, url: Option<String>) -> CmdResult<AuthTestResult> {
     let source = yt_dlp::cookie_source(settings).ok_or_else(|| {
         CommandError::new(
@@ -297,8 +292,7 @@ pub async fn test_authentication(settings: &Settings, url: Option<String>) -> Cm
         });
     };
 
-    // A session can return only storyboard thumbnails (no video/audio). That
-    // is not a successful authentication for downloading clips.
+    // Storyboard-only results do not count as successful auth.
     let formats = json.get("formats").and_then(|value| value.as_array());
     let has_video = formats.map(|items| {
         items.iter().any(|item| {

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Lock a mutex, recovering from poisoning instead of panicking.
+/// Lock a mutex and recover if it is poisoned.
 pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     match mutex.lock() {
         Ok(guard) => guard,
@@ -32,7 +32,7 @@ const WINDOWS_RESERVED: [&str; 22] = [
     "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 ];
 
-/// Make a user supplied clip name safe for Windows / macOS / Linux filesystems.
+/// Make a clip name safe for filenames.
 pub fn sanitize_filename(name: &str) -> String {
     let mut cleaned = String::with_capacity(name.len());
     for ch in name.chars() {
@@ -61,7 +61,7 @@ pub fn sanitize_filename(name: &str) -> String {
     safe
 }
 
-/// Return a destination path that does not collide with an existing file.
+/// Find an output path that does not already exist.
 pub async fn unique_path(dir: &Path, base: &str, ext: &str) -> PathBuf {
     let candidate = dir.join(format!("{}.{}", base, ext));
     if tokio::fs::metadata(&candidate).await.is_err() {

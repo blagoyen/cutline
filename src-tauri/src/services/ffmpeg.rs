@@ -12,7 +12,7 @@ pub struct MediaProbe {
     pub has_video: bool,
 }
 
-/// Verify an exported file really is playable and contains the expected streams.
+/// Check that an exported file is playable and has the expected streams.
 pub async fn probe_media(ffprobe: &Path, file: &Path) -> Option<MediaProbe> {
     let args: Vec<String> = vec![
         "-v".into(),

@@ -6,7 +6,7 @@ use crate::services::yt_dlp;
 use crate::util::lock;
 use crate::AppState;
 
-/// Validate + resolve a YouTube link and pull real metadata through yt-dlp.
+/// Load video metadata after validating the URL.
 #[tauri::command]
 pub async fn probe_video(
     state: State<'_, AppState>,
@@ -32,7 +32,7 @@ pub async fn probe_video(
     Ok(info)
 }
 
-/// Lightweight client-side validation helper.
+/// Canonicalize a YouTube URL without fetching metadata.
 #[tauri::command]
 pub fn validate_url(url: String) -> Result<String, CommandError> {
     yt_dlp::canonicalize(&url).map(|(canonical, _)| canonical)
