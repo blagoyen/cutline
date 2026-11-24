@@ -131,7 +131,7 @@ MSVC is the officially supported Tauri target and is recommended for a normal se
 
 - `npx tsc --noEmit`, `npm run build`, `cargo check --tests`, and `npx tauri build` pass.
 - Unit tests cover URL parsing, timecode formatting, filename safety, non-overwriting paths, progress parsing, browser auth arguments, error codes, and yt-dlp version comparison.
-- In the packaged app, I loaded a signed-in `Me at the zoo` video, marked cuts, fixed an overlap, added a chapter cut, and downloaded it as `Me at the zoo - Clip 03.mp4` — AV1 + AAC, 5.02s. A merged two-section export also came out as a valid 3.75s MP4.
+- In the packaged app, I loaded a signed-in `Me at the zoo` video, marked cuts, fixed an overlap, added a chapter cut, and downloaded it as `Me at the zoo - Clip 03.mp4` — AV1 + AAC, 5.02s. A merged two-section export also came out as a valid 3.75s MP4. I repeated a signed-in export in the 1.9.0 build: `Me at the zoo - Clip 01.mp4`, AV1 + AAC, 10.0078s.
 - The playhead was watched moving from x=2 to x=411 over 8 seconds of a 19-second video. Dark mode was checked in the browser console: `rgb(0, 0, 0)`.
 - I pushed a one-line notice change to `global-info.json` and the running app picked it up on its next load. Pushing the original message back restored it the same way.
 - yt-dlp checksums, the PO Token provider archives, and a real authenticated section download were all checked against the official releases and YouTube.
