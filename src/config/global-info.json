@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "label": "NOTICE",
-  "message": "Live repo check: maintenance tonight at 22:00.",
+  "message": "YT Cutter 0.1.7 — edits and exports stay on this device.",
   "tone": "info",
   "updatedAt": "2026-11-24"
 }
