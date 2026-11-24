@@ -12,12 +12,12 @@ export interface GlobalInfo {
 
 /**
  * The notice is published by editing `src/config/global-info.json` in this
- * repository and committing it. Every installed app polls this raw URL, so no
- * rebuild or reinstall is needed. Only repository owners can change the file;
+ * repository and committing it. Every installed app polls this GitHub contents
+ * endpoint, so no rebuild or reinstall is needed. Only repository owners can change the file;
  * everyone else gets read-only access to the rendered message.
  */
 export const GLOBAL_INFO_URL =
-  "https://raw.githubusercontent.com/blagoyen/yt-cutter/refs/heads/main/src/config/global-info.json";
+  "https://api.github.com/repos/blagoyen/yt-cutter/contents/src/config/global-info.json";
 
 export const GLOBAL_INFO_POLL_MS = 5 * 60 * 1000;
 

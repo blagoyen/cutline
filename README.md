@@ -37,7 +37,7 @@ YT Cutter never installs tools silently. It detects tools, shows their versions,
 
 ### Global notice
 
-Edit [`src/config/global-info.json`](src/config/global-info.json) in the repository and commit/push it. Every running app checks the raw file on launch, every 5 minutes, and whenever the window regains focus. A new message appears in the topbar within one poll; no rebuild or reinstall is needed. The last good message is cached for offline use, and the bundled copy is the final fallback.
+Edit [`src/config/global-info.json`](src/config/global-info.json) in the repository and commit/push it. Every running app checks the GitHub contents endpoint for that file on launch, every 5 minutes, and whenever the window regains focus (with a 30-second anti-spam guard). A new message appears in the topbar within one poll; no rebuild or reinstall is needed. The last good message is cached for offline use, and the bundled copy is the final fallback.
 
 ```json
 {
