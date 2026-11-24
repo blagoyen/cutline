@@ -1,0 +1,43 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FormatInfo {
+    pub format_id: String,
+    pub ext: String,
+    pub height: Option<u32>,
+    pub width: Option<u32>,
+    pub fps: Option<f64>,
+    pub vcodec: Option<String>,
+    pub acodec: Option<String>,
+    pub filesize: Option<u64>,
+    pub note: Option<String>,
+}
+
+/// A YouTube chapter, when the uploader supplied them. Used for quick jumps and
+/// one-click chapter-to-cut conversion; no extra network request is needed.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Chapter {
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoInfo {
+    pub id: String,
+    pub title: String,
+    pub duration_ms: u64,
+    pub thumbnail: String,
+    pub uploader: Option<String>,
+    pub webpage_url: String,
+    pub is_live: bool,
+    pub max_height: u32,
+    pub heights: Vec<u32>,
+    pub formats: Vec<FormatInfo>,
+    pub upload_date: Option<String>,
+    pub view_count: Option<u64>,
+    pub chapters: Vec<Chapter>,
+}

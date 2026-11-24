@@ -1,0 +1,9 @@
+pub mod auth;
+pub mod binaries;
+pub mod download_manager;
+pub mod ffmpeg;
+pub mod metadata;
+pub mod pot_provider;
+pub mod process_manager;
+pub mod updater;
+pub mod yt_dlp;
