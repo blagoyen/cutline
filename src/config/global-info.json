@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "label": "RELEASE",
-  "message": "Cutline 2.0.0 — Redesigned studio UI + Twitch VOD support.",
+  "message": "Cutline 2.1.0 — Redesigned NLE timeline & precision ruler.",
   "tone": "success",
   "updatedAt": "2026-11-25"
 }

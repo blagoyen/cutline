@@ -54,6 +54,8 @@ export const Timeline = memo(function Timeline({
   const canvasRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
+  const playedRef = useRef<HTMLDivElement>(null);
+  const hoverLineRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const dragFrameRef = useRef(0);
@@ -61,16 +63,32 @@ export const Timeline = memo(function Timeline({
   const [dragging, setDragging] = useState(false);
   const [zoom, setZoom] = useState(1);
 
-  const ticks = useMemo(() => {
-    if (durationMs <= 0) return [] as number[];
+  const { majorTicks, minorTicks } = useMemo(() => {
+    if (durationMs <= 0) return { majorTicks: [] as number[], minorTicks: [] as number[] };
     const visibleSeconds = durationMs / 1000 / zoom;
-    const step =
-      TICK_STEPS.find((candidate) => visibleSeconds / candidate <= 8) ?? 7200;
-    const result: number[] = [];
+    const step = TICK_STEPS.find((candidate) => visibleSeconds / candidate <= 8) ?? 7200;
+    const stepMs = Math.round(step * 1000);
+    const majors: number[] = [];
     for (let second = 0; second * 1000 <= durationMs; second += step) {
-      result.push(Math.round(second * 1000));
+      majors.push(Math.round(second * 1000));
     }
-    return result;
+
+    const minors: number[] = [];
+    const subCount = 4;
+    const subStep = stepMs / subCount;
+    if (subStep >= 50) {
+      for (let i = 0; i < majors.length; i += 1) {
+        const base = majors[i];
+        for (let s = 1; s < subCount; s += 1) {
+          const candidate = Math.round(base + subStep * s);
+          if (candidate > 0 && candidate < durationMs) {
+            minors.push(candidate);
+          }
+        }
+      }
+    }
+
+    return { majorTicks: majors, minorTicks: minors.slice(0, 96) };
   }, [durationMs, zoom]);
 
   const pct = (ms: number) => `${(ms / Math.max(1, durationMs)) * 100}%`;
@@ -121,28 +139,32 @@ export const Timeline = memo(function Timeline({
     return () => viewport.removeEventListener("wheel", handleWheel);
   }, [changeZoom, zoom]);
 
-  // Move the playhead with a CSS transform; no React render per frame.
-  // The canvas width is cached via ResizeObserver (reading clientWidth every
-  // frame forces layout), and the transform is only written when it moves.
+  // Move the playhead and played trail with GPU transforms; zero React renders per frame.
   useEffect(() => {
     if (durationMs <= 0) return;
     const canvas = canvasRef.current;
     let width = canvas?.clientWidth ?? 0;
+    let lastX = -1;
     const observer = canvas
       ? new ResizeObserver(() => {
           width = canvas.clientWidth;
+          lastX = -1;
         })
       : null;
     if (canvas) observer?.observe(canvas);
 
     let frame = 0;
-    let lastX = -1;
     const tick = () => {
       const ratio = clamp(currentMsRef.current / durationMs, 0, 1);
       const x = Math.round(ratio * width * 10) / 10;
-      if (playheadRef.current && x !== lastX) {
+      if (x !== lastX) {
         lastX = x;
-        playheadRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
+        if (playheadRef.current) {
+          playheadRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
+        }
+        if (playedRef.current) {
+          playedRef.current.style.transform = `scaleX(${ratio})`;
+        }
       }
       frame = window.requestAnimationFrame(tick);
     };
@@ -221,12 +243,22 @@ export const Timeline = memo(function Timeline({
   const moveTooltip = (clientX: number) => {
     const canvas = canvasRef.current;
     const tooltip = tooltipRef.current;
-    if (!canvas || !tooltip) return;
+    if (!canvas || !tooltip || durationMs <= 0) return;
     const rect = canvas.getBoundingClientRect();
     const local = clamp(clientX - rect.left, 0, rect.width);
+    const tipX = clamp(local, 42, Math.max(42, rect.width - 42));
     tooltip.textContent = formatTimecode(msAt(clientX));
-    tooltip.style.transform = `translate3d(${local}px, 0, 0)`;
+    tooltip.style.transform = `translate3d(${tipX}px, 0, 0) translateX(-50%)`;
     tooltip.style.opacity = "1";
+    if (hoverLineRef.current) {
+      hoverLineRef.current.style.transform = `translate3d(${local}px, 0, 0)`;
+      hoverLineRef.current.style.opacity = "1";
+    }
+  };
+
+  const hideTooltip = () => {
+    if (tooltipRef.current) tooltipRef.current.style.opacity = "0";
+    if (hoverLineRef.current) hoverLineRef.current.style.opacity = "0";
   };
 
   const pendingVisible =
@@ -235,18 +267,37 @@ export const Timeline = memo(function Timeline({
   return (
     <section className={`timeline${dragging ? " is-dragging" : ""}`} aria-label="Timeline">
       <div className="timeline-head">
-        <span className="section-title">Timeline</span>
-        <div className="timeline-readout">
-          <span>
-            In <b>{pendingIn != null ? formatShortTimecode(pendingIn) : "—"}</b>
-          </span>
-          <span>
-            Out <b>{pendingOut != null ? formatShortTimecode(pendingOut) : "—"}</b>
-          </span>
-          <span className="timeline-readout-muted">
-            Length <b>{durationMs > 0 ? formatDuration(durationMs) : "—"}</b>
+        <div className="timeline-title-group">
+          <span className="timeline-dot" aria-hidden="true" />
+          <span className="section-title">Timeline</span>
+          <span className="timeline-count">
+            {clips.length > 0 ? `${clips.length} ${clips.length === 1 ? "cut" : "cuts"}` : "Ready"}
           </span>
         </div>
+
+        <div className="timeline-readout">
+          <span className={`timeline-readout-cell${pendingIn != null ? " is-set" : ""}`}>
+            <span className="timeline-readout-dot" aria-hidden="true" />
+            In <b>{pendingIn != null ? formatShortTimecode(pendingIn) : "—"}</b>
+          </span>
+          <span className="timeline-readout-sep" aria-hidden="true" />
+          <span className={`timeline-readout-cell${pendingOut != null ? " is-set" : ""}`}>
+            <span className="timeline-readout-dot" aria-hidden="true" />
+            Out <b>{pendingOut != null ? formatShortTimecode(pendingOut) : "—"}</b>
+          </span>
+          <span className="timeline-readout-sep" aria-hidden="true" />
+          <span className={`timeline-readout-cell${pendingVisible ? " is-accent" : " timeline-readout-muted"}`}>
+            {pendingVisible ? "Span" : "Length"}{" "}
+            <b>
+              {pendingVisible
+                ? formatDuration((pendingOut as number) - (pendingIn as number))
+                : durationMs > 0
+                  ? formatDuration(durationMs)
+                  : "—"}
+            </b>
+          </span>
+        </div>
+
         <div className="timeline-zoom">
           <button
             type="button"
@@ -258,7 +309,15 @@ export const Timeline = memo(function Timeline({
           >
             <ZoomOut size={13} />
           </button>
-          <span>{zoom.toFixed(1)}x</span>
+          <button
+            type="button"
+            className="timeline-zoom-val"
+            onClick={() => changeZoom(1)}
+            disabled={zoom <= 1}
+            title={zoom > 1 ? "Reset zoom to 1.0x" : "Timeline zoom"}
+          >
+            {zoom.toFixed(1)}x
+          </button>
           <button
             type="button"
             className="icon-btn icon-btn-sm"
@@ -272,105 +331,151 @@ export const Timeline = memo(function Timeline({
         </div>
       </div>
 
-      <div className="timeline-viewport" ref={viewportRef}>
-        <div className="timeline-canvas" ref={canvasRef} style={{ width: `${zoom * 100}%` }}>
-          <div className="timeline-ruler">
-            {ticks.map((tick, index) => (
-              <span
-                key={tick}
-                className={`tick${index === 0 ? " tick-first" : ""}${
-                  tick === ticks[ticks.length - 1] ? " tick-last" : ""
-                }`}
-                style={{ left: pct(tick) }}
-              >
-                {formatDuration(tick)}
-              </span>
-            ))}
-          </div>
-
-          <div
-            className="track"
-            ref={trackRef}
-            onPointerDown={(event) => {
-              if (durationMs <= 0) return;
-              onSeek(msAt(event.clientX));
-            }}
-            onPointerMove={(event) => moveTooltip(event.clientX)}
-            onPointerLeave={() => {
-              if (tooltipRef.current) tooltipRef.current.style.opacity = "0";
-            }}
-            role="slider"
-            aria-label="Video timeline"
-            aria-valuemin={0}
-            aria-valuemax={durationMs}
-            aria-valuenow={Math.round(currentMsRef.current)}
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (durationMs <= 0) return;
-              if (event.key === "ArrowLeft") onSeek(clamp(currentMsRef.current - 1000, 0, durationMs));
-              if (event.key === "ArrowRight") onSeek(clamp(currentMsRef.current + 1000, 0, durationMs));
-            }}
-          >
-            {clips.map((clip, index) => {
-              const active = clip.id === activeClipId;
-              return (
-                <div
-                  key={clip.id}
-                  className={`selection${active ? " is-active" : ""}`}
-                  style={{ left: pct(clip.startMs), width: widthPct(clip.startMs, clip.endMs) }}
-                  onPointerDown={(event) => beginDrag(event, clip, "move")}
-                  title={`${String(index + 1).padStart(2, "0")} · ${clip.name} · ${formatDuration(clip.endMs - clip.startMs)}`}
+      <div className="timeline-deck">
+        <div className="timeline-viewport" ref={viewportRef}>
+          <div className="timeline-canvas" ref={canvasRef} style={{ width: `${zoom * 100}%` }}>
+            <div className="timeline-ruler" aria-hidden="true">
+              {minorTicks.map((tick) => (
+                <span key={`m-${tick}`} className="tick-minor" style={{ left: pct(tick) }} />
+              ))}
+              {majorTicks.map((tick, index) => (
+                <span
+                  key={tick}
+                  className={`tick${index === 0 ? " tick-first" : ""}${
+                    tick === majorTicks[majorTicks.length - 1] ? " tick-last" : ""
+                  }`}
+                  style={{ left: pct(tick) }}
                 >
-                  <span className="selection-number">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="selection-label">{formatDuration(clip.endMs - clip.startMs)}</span>
-                  <span
-                    className="handle handle-left"
-                    onPointerDown={(event) => beginDrag(event, clip, "start")}
-                    role="presentation"
-                  />
-                  <span
-                    className="handle handle-right"
-                    onPointerDown={(event) => beginDrag(event, clip, "end")}
-                    role="presentation"
-                  />
+                  {formatDuration(tick)}
+                </span>
+              ))}
+            </div>
+
+            <div
+              className="track"
+              ref={trackRef}
+              onPointerDown={(event) => {
+                if (durationMs <= 0) return;
+                onSeek(msAt(event.clientX));
+              }}
+              onPointerMove={(event) => moveTooltip(event.clientX)}
+              onPointerLeave={hideTooltip}
+              role="slider"
+              aria-label="Video timeline"
+              aria-valuemin={0}
+              aria-valuemax={durationMs}
+              aria-valuenow={Math.round(currentMsRef.current)}
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (durationMs <= 0) return;
+                if (event.key === "ArrowLeft") onSeek(clamp(currentMsRef.current - 1000, 0, durationMs));
+                if (event.key === "ArrowRight") onSeek(clamp(currentMsRef.current + 1000, 0, durationMs));
+              }}
+            >
+              <div className="track-grid" aria-hidden="true">
+                {majorTicks.map((tick, index) =>
+                  index === 0 ? null : (
+                    <span key={`g-${tick}`} className="track-grid-line" style={{ left: pct(tick) }} />
+                  ),
+                )}
+              </div>
+
+              <div className="track-rail" aria-hidden="true" />
+
+              {durationMs > 0 ? (
+                <div className="track-played" ref={playedRef} aria-hidden="true" />
+              ) : null}
+
+              {clips.map((clip, index) => {
+                const active = clip.id === activeClipId;
+                return (
+                  <div
+                    key={clip.id}
+                    className={`selection${active ? " is-active" : ""}`}
+                    style={{ left: pct(clip.startMs), width: widthPct(clip.startMs, clip.endMs) }}
+                    onPointerDown={(event) => beginDrag(event, clip, "move")}
+                    title={`${String(index + 1).padStart(2, "0")} · ${clip.name} · ${formatDuration(clip.endMs - clip.startMs)}`}
+                  >
+                    <span className="selection-number">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="selection-label">{formatDuration(clip.endMs - clip.startMs)}</span>
+                    <span
+                      className="handle handle-left"
+                      onPointerDown={(event) => beginDrag(event, clip, "start")}
+                      role="presentation"
+                    />
+                    <span
+                      className="handle handle-right"
+                      onPointerDown={(event) => beginDrag(event, clip, "end")}
+                      role="presentation"
+                    />
+                  </div>
+                );
+              })}
+
+              {pendingIn != null && !pendingVisible ? (
+                <div className="pending-pin pending-pin-in" style={{ left: pct(pendingIn) }} aria-hidden="true">
+                  <span>IN</span>
                 </div>
-              );
-            })}
+              ) : null}
 
-            {pendingVisible ? (
-              <div
-                className="pending"
-                style={{
-                  left: pct(pendingIn as number),
-                  width: widthPct(pendingIn as number, pendingOut as number),
-                }}
-              >
-                <span className="pending-label">New cut</span>
-              </div>
-            ) : null}
+              {pendingOut != null && !pendingVisible ? (
+                <div className="pending-pin pending-pin-out" style={{ left: pct(pendingOut) }} aria-hidden="true">
+                  <span>OUT</span>
+                </div>
+              ) : null}
 
-            {durationMs > 0 ? (
-              <div className="playhead" ref={playheadRef} aria-hidden="true">
-                <span className="playhead-cap" />
-              </div>
-            ) : null}
+              {pendingVisible ? (
+                <div
+                  className="pending"
+                  style={{
+                    left: pct(pendingIn as number),
+                    width: widthPct(pendingIn as number, pendingOut as number),
+                  }}
+                >
+                  <span className="pending-label">
+                    New cut · {formatDuration((pendingOut as number) - (pendingIn as number))}
+                  </span>
+                </div>
+              ) : null}
 
-            <span className="timeline-scrub-tip" ref={tooltipRef} aria-hidden="true">
-              {formatTimecode(0)}
-            </span>
+              <div className="timeline-hover-line" ref={hoverLineRef} aria-hidden="true" />
 
-            {durationMs <= 0 ? (
-              <div className="track-empty">
-                <span>Load a video to start marking cuts</span>
-              </div>
-            ) : null}
+              {durationMs > 0 ? (
+                <div className="playhead" ref={playheadRef} aria-hidden="true">
+                  <span className="playhead-cap" />
+                </div>
+              ) : null}
+
+              <span className="timeline-scrub-tip" ref={tooltipRef} aria-hidden="true">
+                {formatTimecode(0)}
+              </span>
+
+              {durationMs <= 0 ? (
+                <div className="track-empty">
+                  <span>Load a video to start marking cuts</span>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
 
-      <p className="timeline-hint">
-        Click to seek · drag numbered blocks or handles · <kbd>Ctrl</kbd> + scroll to zoom
-      </p>
+      <div className="timeline-foot">
+        <p className="timeline-hint">
+          Click to seek · drag cut blocks or trim edges · <kbd>Ctrl</kbd> + scroll to zoom
+        </p>
+        <div className="timeline-keys" aria-hidden="true">
+          <span>
+            <kbd>I</kbd> In
+          </span>
+          <span>
+            <kbd>O</kbd> Out
+          </span>
+          <span>
+            <kbd>C</kbd> Cut
+          </span>
+        </div>
+      </div>
     </section>
   );
 });
