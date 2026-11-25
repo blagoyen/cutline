@@ -80,7 +80,7 @@ impl Default for Settings {
             auth_enabled: false,
             auth_browser: "chrome".to_string(),
             auth_profile: None,
-            theme: "light".to_string(),
+            theme: "dark".to_string(),
             sound_effects: true,
         }
     }

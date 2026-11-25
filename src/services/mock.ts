@@ -47,7 +47,7 @@ const SETTINGS: Settings = {
   authEnabled: false,
   authBrowser: "chrome",
   authProfile: null,
-  theme: "light",
+  theme: "dark",
   soundEffects: true,
 };
 

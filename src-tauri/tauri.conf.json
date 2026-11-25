@@ -20,8 +20,8 @@
         "center": true,
         "resizable": true,
         "decorations": false,
-        "theme": "Light",
-        "backgroundColor": "#F6F7FA"
+        "theme": "Dark",
+        "backgroundColor": "#0A0A0A"
       }
     ],
     "security": {

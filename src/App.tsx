@@ -18,6 +18,7 @@ import { DownloadManager } from "./components/DownloadManager";
 import { DependencyBanner } from "./components/DependencyBanner";
 import { Toasts } from "./components/Toasts";
 import { BrandMark } from "./components/BrandMark";
+import { AsciiBackdrop } from "./components/AsciiBackdrop";
 
 const SettingsPanel = lazy(() =>
   import("./components/SettingsPanel").then((module) => ({ default: module.SettingsPanel })),
@@ -702,6 +703,7 @@ export default function App() {
 
   return (
     <div className={`app-shell${video ? " has-video" : " is-landing"}`} data-source={video?.source ?? "none"}>
+      <AsciiBackdrop variant="ambient" />
       <TopBar
         dependencies={dependencies}
         onOpenSettings={openSettings}
@@ -735,6 +737,31 @@ export default function App() {
             onInstall={() => void handleInstallTools()}
             onOpenSettings={openSettings}
           />
+        ) : null}
+
+        {!video ? (
+          <section className="landing-showcase" aria-label="Capabilities">
+            <div className="ascii-band-frame">
+              <AsciiBackdrop variant="band" />
+            </div>
+            <div className="spec-grid">
+              <div className="spec-cell">
+                <span className="spec-num">01</span>
+                <span className="spec-title">Direct HLS &amp; YouTube</span>
+                <span className="spec-desc">Native Twitch VOD playback and YouTube previews in one deck.</span>
+              </div>
+              <div className="spec-cell">
+                <span className="spec-num">02</span>
+                <span className="spec-title">Multi-cut &amp; Merge</span>
+                <span className="spec-desc">Stack cuts with keyboard shortcuts or concat them losslessly.</span>
+              </div>
+              <div className="spec-cell">
+                <span className="spec-num">03</span>
+                <span className="spec-title">Local &amp; Private</span>
+                <span className="spec-desc">Downloads only selected ranges with local yt-dlp and FFmpeg.</span>
+              </div>
+            </div>
+          </section>
         ) : null}
 
         {video ? (
