@@ -125,6 +125,7 @@ export function useMediaPlayer(
   source: VideoSource,
   streamUrl: string | null,
   loopRef: RefObject<LoopRange | null>,
+  audioStreamUrl: string | null = null,
 ) {
   const [state, setState] = useState<PlayerState>(INITIAL);
   const adapterRef = useRef<PlayerAdapter | null>(null);
@@ -254,17 +255,28 @@ export function useMediaPlayer(
       adapterRef.current = adapter;
     };
 
-    const createNativeStream = async (url: string) => {
+    const createNativeStream = async (url: string, audioUrl: string | null) => {
       if (disposed || !hostRef.current) return;
       hostRef.current.innerHTML = "";
 
       const video = document.createElement("video");
       video.className = "player-video";
       video.playsInline = true;
+      video.setAttribute("webkit-playsinline", "true");
       video.preload = "metadata";
       video.volume = volumeRef.current / 100;
       video.playbackRate = rateRef.current;
       hostRef.current.appendChild(video);
+
+      let audio: HTMLAudioElement | null = null;
+      if (audioUrl) {
+        audio = document.createElement("audio");
+        audio.preload = "metadata";
+        audio.src = audioUrl;
+        audio.volume = volumeRef.current / 100;
+        audio.playbackRate = rateRef.current;
+        video.muted = true; // Audio comes from synced AAC track
+      }
 
       let hls: HlsType | null = null;
       const isHls = /\.m3u8(\?|$)/i.test(url) || url.includes("m3u8");
@@ -276,11 +288,36 @@ export function useMediaPlayer(
         applyState({ ready: true, error: null, durationMs: dur });
       };
 
-      const onPlay = () => !disposed && applyState({ playing: true, buffering: false, ready: true });
-      const onPause = () => !disposed && applyState({ playing: false, buffering: false });
-      const onWaiting = () => !disposed && applyState({ buffering: true });
-      const onCanPlay = () => !disposed && applyState({ buffering: false, ready: true });
-      const onEnded = () => !disposed && applyState({ playing: false, buffering: false });
+      const onPlay = () => {
+        if (audio) {
+          if (Math.abs(audio.currentTime - video.currentTime) > 0.25) {
+            audio.currentTime = video.currentTime;
+          }
+          void audio.play().catch(() => undefined);
+        }
+        if (!disposed) applyState({ playing: true, buffering: false, ready: true });
+      };
+      const onPause = () => {
+        audio?.pause();
+        if (!disposed) applyState({ playing: false, buffering: false });
+      };
+      const onWaiting = () => {
+        audio?.pause();
+        if (!disposed) applyState({ buffering: true });
+      };
+      const onCanPlay = () => {
+        if (audio && !video.paused) {
+          if (Math.abs(audio.currentTime - video.currentTime) > 0.25) {
+            audio.currentTime = video.currentTime;
+          }
+          void audio.play().catch(() => undefined);
+        }
+        if (!disposed) applyState({ buffering: false, ready: true });
+      };
+      const onEnded = () => {
+        audio?.pause();
+        if (!disposed) applyState({ playing: false, buffering: false });
+      };
       const onError = () => {
         if (disposed) return;
         window.clearTimeout(readyTimer);
@@ -288,7 +325,7 @@ export function useMediaPlayer(
           ready: false,
           playing: false,
           buffering: false,
-          error: "Could not load the Twitch stream preview. Clip downloads still work.",
+          error: "Could not load the direct stream preview. Clip downloads still work.",
         });
       };
 
@@ -303,7 +340,7 @@ export function useMediaPlayer(
       readyTimer = window.setTimeout(() => {
         if (!disposed && !stateRef.current.ready) {
           applyState({
-            error: "The Twitch stream preview timed out. You can still mark cuts and export clips.",
+            error: "The stream preview timed out. You can still mark cuts and export clips.",
           });
         }
       }, 15000);
@@ -340,11 +377,22 @@ export function useMediaPlayer(
 
       const adapter: PlayerAdapter = {
         play: () => {
+          if (audio) {
+            audio.currentTime = video.currentTime;
+            void audio.play().catch(() => undefined);
+          }
           void video.play().catch(() => undefined);
         },
-        pause: () => video.pause(),
+        pause: () => {
+          video.pause();
+          audio?.pause();
+        },
         seekSeconds: (seconds) => {
-          if (Number.isFinite(seconds)) video.currentTime = Math.max(0, seconds);
+          if (Number.isFinite(seconds)) {
+            const safe = Math.max(0, seconds);
+            video.currentTime = safe;
+            if (audio) audio.currentTime = safe;
+          }
         },
         getCurrentTime: () => video.currentTime || 0,
         getDuration: () => (Number.isFinite(video.duration) ? video.duration : 0),
@@ -353,18 +401,23 @@ export function useMediaPlayer(
           if (!Number.isFinite(dur) || dur <= 0 || video.buffered.length === 0) return 0;
           return Math.min(1, video.buffered.end(video.buffered.length - 1) / dur);
         },
-        isMuted: () => video.muted,
+        isMuted: () => (audio ? audio.muted : video.muted),
         setMuted: (muted) => {
-          video.muted = muted;
+          if (audio) audio.muted = muted;
+          else video.muted = muted;
         },
         setVolume: (vol) => {
-          video.volume = Math.min(1, Math.max(0, vol / 100));
+          const v = Math.min(1, Math.max(0, vol / 100));
+          if (audio) audio.volume = v;
+          else video.volume = v;
         },
         setPlaybackRate: (rate) => {
           video.playbackRate = rate;
+          if (audio) audio.playbackRate = rate;
         },
         destroy: () => {
           video.pause();
+          audio?.pause();
           video.removeEventListener("loadedmetadata", markReady);
           video.removeEventListener("canplay", onCanPlay);
           video.removeEventListener("playing", onPlay);
@@ -375,6 +428,10 @@ export function useMediaPlayer(
           hls?.destroy();
           video.removeAttribute("src");
           video.load();
+          if (audio) {
+            audio.removeAttribute("src");
+            audio.load();
+          }
           if (hostRef.current) hostRef.current.innerHTML = "";
         },
       };
@@ -385,16 +442,14 @@ export function useMediaPlayer(
 
     const boot = async () => {
       try {
-        if (source === "twitch") {
-          if (streamUrl) {
-            await createNativeStream(streamUrl);
-          } else {
-            applyState({
-              ready: false,
-              error:
-                "No direct preview stream was returned for this Twitch link. You can still scrub the timeline and export clips.",
-            });
-          }
+        if (streamUrl) {
+          await createNativeStream(streamUrl, audioStreamUrl);
+        } else if (source === "twitch") {
+          applyState({
+            ready: false,
+            error:
+              "No direct preview stream was returned for this Twitch link. You can still scrub the timeline and export clips.",
+          });
         } else {
           await createYouTube();
         }
@@ -423,7 +478,7 @@ export function useMediaPlayer(
       }
       if (adapterRef.current === created) adapterRef.current = null;
     };
-  }, [videoId, source, streamUrl, hostRef, applyState]);
+  }, [videoId, source, streamUrl, audioStreamUrl, hostRef, applyState]);
 
   /* Keep the playhead in a ref so playback does not re-render React. */
   useEffect(() => {

@@ -39,8 +39,16 @@ jobs:
           npm ci
           npm run build
 
-      - name: Initialize Tauri iOS project
-        run: npx tauri ios init --ci
+      - name: Initialize Tauri iOS project & sync Cutline AppIcon
+        run: |
+          set -euo pipefail
+          npx tauri ios init --ci
+          npx tauri icon src-tauri/icons/icon.png
+          ICON_DEST=$(find src-tauri/gen/apple -type d -name "AppIcon.appiconset" | head -n 1)
+          if [ -n "$ICON_DEST" ] && [ -d "src-tauri/icons/ios" ]; then
+            echo "Syncing Cutline iOS icons into $ICON_DEST"
+            cp -f src-tauri/icons/ios/*.png "$ICON_DEST/"
+          fi
 
       - name: Build Rust staticlib for aarch64-apple-ios
         env:

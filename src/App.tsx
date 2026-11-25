@@ -104,18 +104,9 @@ export default function App() {
         setSettingsOpen(true);
         return;
       }
+      setSettingsOpen(false);
       setMobileTab(tab);
-      if (tab === "home") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else if (tab === "studio") {
-        document.querySelector(".studio")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else if (tab === "exports") {
-        (
-          document.querySelector(".studio-downloads") ??
-          document.querySelector(".clip-toolbar") ??
-          document.querySelector(".clips")
-        )?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     },
     [],
   );
@@ -134,6 +125,7 @@ export default function App() {
     video?.source ?? "youtube",
     video?.streamUrl ?? null,
     loopRef,
+    video?.audioStreamUrl ?? null,
   );
   const { seekMs, skipMs, play, toggle: togglePlayback } = player;
 
@@ -208,6 +200,7 @@ export default function App() {
       setPendingIn(null);
       setPendingOut(null);
       setLoopEnabled(false);
+      if (isMobile) setMobileTab("studio");
     } catch (err) {
       setLoadError(errorMessage(err));
     } finally {
@@ -739,8 +732,14 @@ export default function App() {
 
   const activeCount = activeDownloads.length;
 
+  const activeMobileTab: MobileTab = settingsOpen ? "settings" : mobileTab;
+
   return (
-    <div className={`app-shell${video ? " has-video" : " is-landing"}`} data-source={video?.source ?? "none"}>
+    <div
+      className={`app-shell${video ? " has-video" : " is-landing"}`}
+      data-source={video?.source ?? "none"}
+      data-mobile-tab={mobileTab}
+    >
       <AsciiBackdrop variant="ambient" monochrome={isMobile} />
       <TopBar
         dependencies={dependencies}
@@ -911,6 +910,23 @@ export default function App() {
           </div>
         ) : null}
 
+        {isMobile && mobileTab === "exports" && !video && downloadTasks.length === 0 ? (
+          <section className="ios-empty-card" aria-label="No exports yet">
+            <h2 className="ios-empty-title">No cuts queued</h2>
+            <p className="ios-empty-desc">
+              Import a YouTube video or Twitch VOD from Home, mark your cuts in Studio, and export
+              directly to Photos or Files.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => handleMobileTab("home")}
+            >
+              Go to Home
+            </button>
+          </section>
+        ) : null}
+
         <footer className="app-footer">
           <span className="footer-item">Cutline{version ? ` v${version}` : ""}</span>
           <span className="footer-sep" aria-hidden="true" />
@@ -938,7 +954,7 @@ export default function App() {
       ) : null}
 
       <MobileTabBar
-        activeTab={settingsOpen ? "settings" : video && mobileTab === "home" ? "studio" : mobileTab}
+        activeTab={activeMobileTab}
         hasVideo={Boolean(video)}
         clipCount={clips.length}
         activeDownloads={activeCount}

@@ -238,6 +238,7 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
             .or_else(|| as_str(target, "creator")),
         webpage_url,
         stream_url,
+        audio_stream_url: None,
         is_live,
         max_height,
         heights,
