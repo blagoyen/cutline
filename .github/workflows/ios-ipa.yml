@@ -71,15 +71,7 @@ jobs:
 
           # Remove Tauri's preBuildScripts (which require a live `tauri ios build` server)
           # since we already compiled libapp.a directly above.
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path("src-tauri/gen/apple/project.yml")
-          text = p.read_text()
-          text = re.sub(r"(?m)^    preBuildScripts:\n(?:      .*\n)*", "", text)
-          p.write_text(text)
-          print("Patched project.yml successfully")
-          PY
+          python3 -c 'import re, pathlib; p = pathlib.Path("src-tauri/gen/apple/project.yml"); p.write_text(re.sub(r"(?m)^    preBuildScripts:\n(?:      .*\n)*", "", p.read_text())); print("Patched project.yml")'
 
           (cd src-tauri/gen/apple && xcodegen generate)
 
