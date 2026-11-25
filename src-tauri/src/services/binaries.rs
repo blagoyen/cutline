@@ -80,6 +80,7 @@ fn extra_search_dirs() -> &'static [PathBuf] {
             dirs.push(local.join("Programs").join("ffmpeg").join("bin"));
             dirs.push(local.join("Programs").join("yt-dlp"));
             dirs.push(local.join("ffmpeg").join("bin"));
+            dirs.push(local.join("Cutline").join("bin"));
             dirs.push(local.join("YT Cutter").join("bin"));
         }
         if let Some(home) = std::env::var_os("USERPROFILE") {

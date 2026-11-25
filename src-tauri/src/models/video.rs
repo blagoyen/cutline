@@ -47,6 +47,8 @@ pub struct VideoInfo {
     pub thumbnail: String,
     pub uploader: Option<String>,
     pub webpage_url: String,
+    #[serde(default)]
+    pub stream_url: Option<String>,
     pub is_live: bool,
     pub max_height: u32,
     pub heights: Vec<u32>,

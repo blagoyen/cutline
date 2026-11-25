@@ -44,7 +44,7 @@ pub struct UpdateResult {
 fn client() -> CmdResult<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(180))
-        .user_agent("YT-Cutter-Updater/1.9.0")
+        .user_agent("Cutline-Updater/2.0.0")
         .build()
         .map_err(|err| {
             CommandError::new("HTTP_CLIENT_FAILED", "Could not start the update check.")

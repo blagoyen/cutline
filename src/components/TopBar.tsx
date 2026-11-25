@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useGlobalInfo } from "../hooks/useGlobalInfo";
 import type { DependencyReport } from "../types";
+import { BrandMark } from "./BrandMark";
 
 interface TopBarProps {
   dependencies: DependencyReport | null;
@@ -100,10 +101,8 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
   return (
     <header className="topbar" data-tauri-drag-region>
       <div className="brand" data-tauri-drag-region>
-        <span className="brand-mark" aria-hidden="true" data-tauri-drag-region />
-        <span className="brand-name" data-tauri-drag-region>CUTLINE</span>
-        <span className="brand-sep" aria-hidden="true" data-tauri-drag-region />
-        <span className="brand-tag" data-tauri-drag-region>YouTube · Twitch</span>
+        <BrandMark size={24} />
+        <span className="brand-name" data-tauri-drag-region>Cutline</span>
       </div>
 
       <div className="topbar-center">

@@ -17,6 +17,7 @@ import { ClipList, type ClipEdge } from "./components/ClipList";
 import { DownloadManager } from "./components/DownloadManager";
 import { DependencyBanner } from "./components/DependencyBanner";
 import { Toasts } from "./components/Toasts";
+import { BrandMark } from "./components/BrandMark";
 
 const SettingsPanel = lazy(() =>
   import("./components/SettingsPanel").then((module) => ({ default: module.SettingsPanel })),
@@ -87,7 +88,13 @@ export default function App() {
 
   const hostRef = useRef<HTMLDivElement>(null);
   const loopRef = useRef<LoopRange | null>(null);
-  const player = useMediaPlayer(hostRef, video?.id ?? null, video?.source ?? "youtube", loopRef);
+  const player = useMediaPlayer(
+    hostRef,
+    video?.id ?? null,
+    video?.source ?? "youtube",
+    video?.streamUrl ?? null,
+    loopRef,
+  );
   const { seekMs, skipMs, play, toggle: togglePlayback } = player;
 
   const durationMs = player.durationMs || video?.durationMs || 0;
@@ -651,7 +658,7 @@ export default function App() {
   if (!settings) {
     return (
       <div className="boot">
-        <span className="brand-mark" aria-hidden="true" />
+        <BrandMark size={32} />
         <span className="boot-text">
           {settingsError ?? (settingsLoading ? "Preparing Cutline…" : "Settings unavailable")}
         </span>
@@ -662,7 +669,7 @@ export default function App() {
   const activeCount = activeDownloads.length;
 
   return (
-    <div className="app-shell" data-source={video?.source ?? "none"}>
+    <div className={`app-shell${video ? " has-video" : " is-landing"}`} data-source={video?.source ?? "none"}>
       <TopBar
         dependencies={dependencies}
         onOpenSettings={openSettings}
@@ -671,6 +678,16 @@ export default function App() {
       />
 
       <main className="workspace">
+        {!video ? (
+          <HeroPanel
+            clipCount={clips.length}
+            totalDurationMs={totalDurationMs}
+            quality={quality}
+            format={format}
+            activeSource={null}
+          />
+        ) : null}
+
         <UrlBar
           value={url}
           loading={loadingVideo}
@@ -686,16 +703,17 @@ export default function App() {
           />
         ) : null}
 
-        <div className="hero">
-          <HeroPanel
-            clipCount={clips.length}
-            totalDurationMs={totalDurationMs}
-            quality={quality}
-            format={format}
-            activeSource={video?.source ?? null}
-          />
-
+        {video ? (
           <div className="studio">
+            <HeroPanel
+              clipCount={clips.length}
+              totalDurationMs={totalDurationMs}
+              quality={quality}
+              format={format}
+              activeSource={video.source}
+              compact
+            />
+
             <VideoStage
               video={video}
               hostRef={hostRef}
@@ -715,7 +733,7 @@ export default function App() {
               onSeek={seekMs}
               onSkip={skipMs}
               onQuickCut={quickCut}
-              chapters={video?.chapters ?? NO_CHAPTERS}
+              chapters={video.chapters ?? NO_CHAPTERS}
               onJumpChapter={jumpToChapter}
               onChapterToCut={chapterToCut}
             />
@@ -732,62 +750,60 @@ export default function App() {
               onSelectClip={setActiveClipId}
             />
 
-            {video ? (
-              <>
-                <ClipToolbar
-                  video={video}
-                  quality={quality}
-                  format={format}
-                  precise={precise}
-                  namingTemplate={namingTemplate}
-                  mergeCuts={mergeCuts}
-                  clipCount={clips.length}
-                  busy={exporting}
-                  onQuality={changeQuality}
-                  onFormat={changeFormat}
-                  onPrecise={changePrecise}
-                  onNamingTemplate={changeNamingTemplate}
-                  onMergeCuts={changeMergeCuts}
-                  onExport={downloadAll}
-                />
+            <ClipToolbar
+              video={video}
+              quality={quality}
+              format={format}
+              precise={precise}
+              namingTemplate={namingTemplate}
+              mergeCuts={mergeCuts}
+              clipCount={clips.length}
+              busy={exporting}
+              onQuality={changeQuality}
+              onFormat={changeFormat}
+              onPrecise={changePrecise}
+              onNamingTemplate={changeNamingTemplate}
+              onMergeCuts={changeMergeCuts}
+              onExport={downloadAll}
+            />
 
-                <ClipList
-                  clips={clips}
-                  durationMs={durationMs}
-                  activeClipId={activeClipId}
-                  tasksByClip={byClip}
-                  busy={exporting}
-                  onSelect={setActiveClipId}
-                  onChange={updateClip}
-                  onDelete={deleteClip}
-                  onDuplicate={duplicateClip}
-                  onPreview={seekToClip}
-                  onLoop={loopClip}
-                  onDownload={downloadClip}
-                  onMove={moveClip}
-                  onNudge={nudgeClip}
-                  onSnap={snapClip}
-                  onAdd={addManualCut}
-                  onFixOverlaps={fixOverlaps}
-                />
-              </>
-            ) : null}
-
-            {downloadTasks.length > 0 ? (
-              <DownloadManager
-                tasks={downloadTasks}
-                activeCount={activeCount}
-                onCancel={handleCancel}
-                onRetry={handleRetry}
-                onRemove={handleRemove}
-                onOpenFile={handleOpenFile}
-                onReveal={handleReveal}
-                onOpenFolder={handleOpenFolder}
-                onClearFinished={handleClearFinished}
-              />
-            ) : null}
+            <ClipList
+              clips={clips}
+              durationMs={durationMs}
+              activeClipId={activeClipId}
+              tasksByClip={byClip}
+              busy={exporting}
+              onSelect={setActiveClipId}
+              onChange={updateClip}
+              onDelete={deleteClip}
+              onDuplicate={duplicateClip}
+              onPreview={seekToClip}
+              onLoop={loopClip}
+              onDownload={downloadClip}
+              onMove={moveClip}
+              onNudge={nudgeClip}
+              onSnap={snapClip}
+              onAdd={addManualCut}
+              onFixOverlaps={fixOverlaps}
+            />
           </div>
-        </div>
+        ) : null}
+
+        {downloadTasks.length > 0 ? (
+          <div className="studio-downloads">
+            <DownloadManager
+              tasks={downloadTasks}
+              activeCount={activeCount}
+              onCancel={handleCancel}
+              onRetry={handleRetry}
+              onRemove={handleRemove}
+              onOpenFile={handleOpenFile}
+              onReveal={handleReveal}
+              onOpenFolder={handleOpenFolder}
+              onClearFinished={handleClearFinished}
+            />
+          </div>
+        ) : null}
 
         <footer className="app-footer">
           <span className="footer-item">Cutline{version ? ` v${version}` : ""}</span>

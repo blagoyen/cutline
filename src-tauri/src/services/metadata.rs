@@ -126,6 +126,39 @@ fn parse_chapters(value: &Value, duration_ms: u64) -> Vec<Chapter> {
     chapters
 }
 
+fn pick_stream_url(value: &Value, source: VideoSource) -> Option<String> {
+    if source != VideoSource::Twitch {
+        return None;
+    }
+    if let Some(formats) = value.get("formats").and_then(|v| v.as_array()) {
+        // Prefer a crisp 720p-1080p muxed HLS/MP4 stream for fast preview scrubbing.
+        let mut best_preview: Option<(u32, String)> = None;
+        let mut best_any: Option<(u32, String)> = None;
+        for fmt in formats {
+            let Some(url) = as_str(fmt, "url") else {
+                continue;
+            };
+            let vcodec = as_str(fmt, "vcodec").unwrap_or_default();
+            if vcodec == "none" {
+                continue;
+            }
+            let height = as_u64(fmt, "height").map(|h| h as u32).unwrap_or(0);
+            if height > 0 && height <= 1080 {
+                if best_preview.as_ref().map(|(h, _)| height >= *h).unwrap_or(true) {
+                    best_preview = Some((height, url.clone()));
+                }
+            }
+            if best_any.as_ref().map(|(h, _)| height >= *h).unwrap_or(true) {
+                best_any = Some((height, url));
+            }
+        }
+        if let Some((_, url)) = best_preview.or(best_any) {
+            return Some(url);
+        }
+    }
+    as_str(value, "url")
+}
+
 /// Convert `yt-dlp -J` output into UI video info.
 pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
     let mut target = value;
@@ -192,6 +225,8 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
         .or_else(|| as_str(target, "fulltitle"))
         .unwrap_or_else(|| "Untitled video".to_string());
 
+    let stream_url = pick_stream_url(target, source);
+
     Ok(VideoInfo {
         id: clean_id,
         source,
@@ -202,6 +237,7 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
             .or_else(|| as_str(target, "channel"))
             .or_else(|| as_str(target, "creator")),
         webpage_url,
+        stream_url,
         is_live,
         max_height,
         heights,

@@ -1,7 +1,8 @@
 import { memo } from "react";
-import { Clapperboard, Clock3, PlaySquare, Tv } from "lucide-react";
+import { PlaySquare, Scissors, ShieldCheck, Tv } from "lucide-react";
 import type { VideoSource } from "../types";
 import { formatDuration, qualityLabel } from "../utils/format";
+import { BrandMark } from "./BrandMark";
 
 interface HeroPanelProps {
   clipCount: number;
@@ -9,13 +10,8 @@ interface HeroPanelProps {
   quality: string;
   format: string;
   activeSource: VideoSource | null;
+  compact?: boolean;
 }
-
-const STEPS = [
-  { index: "01", text: "Paste a YouTube video or Twitch VOD link." },
-  { index: "02", text: "Mark in / out points and stack multiple cuts." },
-  { index: "03", text: "Pick quality and export straight to your drive." },
-];
 
 export const HeroPanel = memo(function HeroPanel({
   clipCount,
@@ -23,70 +19,61 @@ export const HeroPanel = memo(function HeroPanel({
   quality,
   format,
   activeSource,
+  compact = false,
 }: HeroPanelProps) {
+  if (compact) {
+    return (
+      <div className="session-strip" aria-label="Current session summary">
+        <span className="session-pill">
+          <Scissors size={12} strokeWidth={2} />
+          <b>{clipCount}</b> {clipCount === 1 ? "cut" : "cuts"}
+        </span>
+        <span className="session-sep" aria-hidden="true" />
+        <span className="session-pill">
+          Total <b>{formatDuration(totalDurationMs)}</b>
+        </span>
+        <span className="session-sep" aria-hidden="true" />
+        <span className="session-pill">
+          <b>{qualityLabel(quality)}</b> · {format.toUpperCase()}
+        </span>
+        {activeSource ? (
+          <>
+            <span className="session-sep" aria-hidden="true" />
+            <span className={`session-source session-source-${activeSource}`}>
+              {activeSource === "twitch" ? "Twitch" : "YouTube"}
+            </span>
+          </>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <aside className="editorial">
-      <p className="eyebrow">Cutline Studio</p>
-
-      <h1 className="headline">
-        Clip only the moments you need
-        <br />
-        <em>from YouTube &amp; Twitch.</em>
+    <section className="minimal-hero" aria-label="Cutline overview">
+      <div className="minimal-hero-mark">
+        <BrandMark size={52} />
+      </div>
+      <h1 className="minimal-headline">
+        Clip YouTube &amp; Twitch, locally.
       </h1>
-
-      <p className="lede">
-        Import any YouTube video or Twitch VOD, scrub to the exact frame, and export clean clips or
-        merged highlights locally.
+      <p className="minimal-lede">
+        Paste any video or VOD link, mark exact in and out points, and export clean MP4 or MP3 clips
+        straight to your drive.
       </p>
-
       <div className="source-pills" aria-label="Supported video sources">
-        <span className={`source-pill source-pill-youtube${activeSource === "youtube" ? " is-active" : ""}`}>
+        <span className="source-pill source-pill-youtube">
           <PlaySquare size={13} strokeWidth={2} aria-hidden="true" />
-          YouTube
+          YouTube Videos &amp; Shorts
         </span>
-        <span className={`source-pill source-pill-twitch${activeSource === "twitch" ? " is-active" : ""}`}>
+        <span className="source-pill source-pill-twitch">
           <Tv size={13} strokeWidth={2} aria-hidden="true" />
-          Twitch VODs
+          Twitch VODs &amp; Clips
+        </span>
+        <span className="source-pill">
+          <ShieldCheck size={13} strokeWidth={2} aria-hidden="true" />
+          100% Local
         </span>
       </div>
-
-      <ol className="steps">
-        {STEPS.map((step) => (
-          <li className="step" key={step.index}>
-            <span className="step-index">{step.index}</span>
-            <span className="step-text">{step.text}</span>
-          </li>
-        ))}
-      </ol>
-
-      <div className="summary-card" aria-label="Current export summary">
-        <div className="summary-card-head">
-          <span className="eyebrow eyebrow-sm">Session deck</span>
-          <span className="summary-live">
-            <span className="dot dot-ok" aria-hidden="true" /> Local
-          </span>
-        </div>
-        <div className="summary-stat">
-          <span className="summary-icon">
-            <Clapperboard size={14} strokeWidth={1.8} />
-          </span>
-          <span>Clips queued</span>
-          <b>{String(clipCount).padStart(2, "0")}</b>
-        </div>
-        <div className="summary-stat">
-          <span className="summary-icon">
-            <Clock3 size={14} strokeWidth={1.8} />
-          </span>
-          <span>Total duration</span>
-          <b>{formatDuration(totalDurationMs)}</b>
-        </div>
-        <div className="summary-stat">
-          <span className="summary-icon summary-icon-text">{format.toUpperCase()}</span>
-          <span>Output</span>
-          <b>{qualityLabel(quality)}</b>
-        </div>
-        <p className="summary-foot">Zero cloud uploads · powered by local FFmpeg &amp; yt-dlp.</p>
-      </div>
-    </aside>
+    </section>
   );
 });

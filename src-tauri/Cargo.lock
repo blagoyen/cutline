@@ -704,6 +704,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "cutline"
+version = "2.0.0"
+dependencies = [
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "thiserror 2.0.21",
+ "tokio",
+ "url",
+ "uuid",
+ "zip",
+]
+
+[[package]]
 name = "darling"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5370,25 +5389,6 @@ dependencies = [
  "quote",
  "syn 3.0.10",
  "synstructure",
-]
-
-[[package]]
-name = "yt-cutter"
-version = "2.0.0"
-dependencies = [
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "thiserror 2.0.21",
- "tokio",
- "url",
- "uuid",
- "zip",
 ]
 
 [[package]]

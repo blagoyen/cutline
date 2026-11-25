@@ -455,7 +455,7 @@ pub fn map_error(stderr: &str, exit_context: &str, auth_enabled: bool) -> Comman
     {
         (
             "JS_RUNTIME_MISSING",
-            "YouTube requires Node.js 22 or newer to solve its JavaScript challenge. Install Node.js from nodejs.org, restart YT Cutter, and try again.",
+            "YouTube requires Node.js 22 or newer to solve its JavaScript challenge. Install Node.js from nodejs.org, restart Cutline, and try again.",
         )
     } else if lower.contains("no video formats found") {
         (

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import Hls from "hls.js";
 import type { VideoSource } from "../types";
 
 interface YtPlayer {
@@ -23,37 +24,10 @@ interface YtApi {
   Player: new (element: HTMLElement | string, options: Record<string, unknown>) => YtPlayer;
 }
 
-interface TwitchPlayerInstance {
-  play: () => void;
-  pause: () => void;
-  seek: (seconds: number) => void;
-  getCurrentTime: () => number;
-  getDuration: () => number;
-  setVolume: (volume: number) => void;
-  getVolume: () => number;
-  setMuted: (muted: boolean) => void;
-  getMuted: () => boolean;
-  addEventListener: (event: string, listener: () => void) => void;
-  destroy?: () => void;
-}
-
-interface TwitchApi {
-  Player: {
-    new (element: HTMLElement | string, options: Record<string, unknown>): TwitchPlayerInstance;
-    READY: string;
-    PLAY: string;
-    PLAYING: string;
-    PAUSE: string;
-    ENDED: string;
-    OFFLINE: string;
-  };
-}
-
 declare global {
   interface Window {
     YT?: YtApi;
     onYouTubeIframeAPIReady?: () => void;
-    Twitch?: TwitchApi;
   }
 }
 
@@ -104,7 +78,6 @@ const INITIAL: PlayerState = {
 };
 
 let ytApiPromise: Promise<YtApi> | null = null;
-let twitchApiPromise: Promise<TwitchApi> | null = null;
 
 function loadYouTubeApi(): Promise<YtApi> {
   if (window.YT?.Player) return Promise.resolve(window.YT);
@@ -138,38 +111,6 @@ function loadYouTubeApi(): Promise<YtApi> {
   return ytApiPromise;
 }
 
-function loadTwitchApi(): Promise<TwitchApi> {
-  if (window.Twitch?.Player) return Promise.resolve(window.Twitch);
-  if (twitchApiPromise) return twitchApiPromise;
-
-  twitchApiPromise = new Promise<TwitchApi>((resolve, reject) => {
-    const timer = window.setTimeout(() => {
-      twitchApiPromise = null;
-      reject(new Error("The Twitch player took too long to load."));
-    }, 15000);
-
-    const script = document.createElement("script");
-    script.src = "https://player.twitch.tv/js/embed/v1.js";
-    script.async = true;
-    script.onload = () => {
-      window.clearTimeout(timer);
-      if (window.Twitch?.Player) resolve(window.Twitch);
-      else {
-        twitchApiPromise = null;
-        reject(new Error("The Twitch player could not be initialised."));
-      }
-    };
-    script.onerror = () => {
-      window.clearTimeout(timer);
-      twitchApiPromise = null;
-      reject(new Error("The Twitch player script could not be loaded. Check your connection."));
-    };
-    document.head.appendChild(script);
-  });
-
-  return twitchApiPromise;
-}
-
 const YT_ERROR_TEXT: Record<number, string> = {
   2: "This video link is invalid.",
   5: "The YouTube player could not start in this app.",
@@ -182,6 +123,7 @@ export function useMediaPlayer(
   hostRef: RefObject<HTMLDivElement | null>,
   videoId: string | null,
   source: VideoSource,
+  streamUrl: string | null,
   loopRef: RefObject<LoopRange | null>,
 ) {
   const [state, setState] = useState<PlayerState>(INITIAL);
@@ -216,8 +158,8 @@ export function useMediaPlayer(
     setState({
       ...INITIAL,
       volume: volumeRef.current,
-      playbackRate: source === "youtube" ? rateRef.current : 1,
-      supportsPlaybackRate: source === "youtube",
+      playbackRate: rateRef.current,
+      supportsPlaybackRate: true,
     });
     currentMsRef.current = 0;
     loadedFractionRef.current = 0;
@@ -312,100 +254,144 @@ export function useMediaPlayer(
       adapterRef.current = adapter;
     };
 
-    const createTwitch = async () => {
-      // Twitch Clips use non-numeric slugs and do not expose the VOD JS playback API.
-      if (!/^\d+$/.test(videoId)) {
+    const createNativeStream = async (url: string) => {
+      if (disposed || !hostRef.current) return;
+      hostRef.current.innerHTML = "";
+
+      const video = document.createElement("video");
+      video.className = "player-video";
+      video.playsInline = true;
+      video.preload = "metadata";
+      video.volume = volumeRef.current / 100;
+      video.playbackRate = rateRef.current;
+      hostRef.current.appendChild(video);
+
+      let hls: Hls | null = null;
+      const isHls = /\.m3u8(\?|$)/i.test(url) || url.includes("m3u8");
+
+      const markReady = () => {
+        if (disposed) return;
+        window.clearTimeout(readyTimer);
+        const dur = Number.isFinite(video.duration) ? Math.round(video.duration * 1000) : 0;
+        applyState({ ready: true, error: null, durationMs: dur });
+      };
+
+      const onPlay = () => !disposed && applyState({ playing: true, buffering: false, ready: true });
+      const onPause = () => !disposed && applyState({ playing: false, buffering: false });
+      const onWaiting = () => !disposed && applyState({ buffering: true });
+      const onCanPlay = () => !disposed && applyState({ buffering: false, ready: true });
+      const onEnded = () => !disposed && applyState({ playing: false, buffering: false });
+      const onError = () => {
+        if (disposed) return;
+        window.clearTimeout(readyTimer);
         applyState({
           ready: false,
-          error:
-            "Embedded preview is only available for Twitch VODs. Use the timeline below to mark cuts and export this clip.",
+          playing: false,
+          buffering: false,
+          error: "Could not load the Twitch stream preview. Clip downloads still work.",
         });
-        return;
-      }
+      };
 
-      const api = await loadTwitchApi();
-      if (disposed || !hostRef.current) return;
-
-      hostRef.current.innerHTML = "";
-      const host = document.createElement("div");
-      host.className = "player-host";
-      hostRef.current.appendChild(host);
+      video.addEventListener("loadedmetadata", markReady);
+      video.addEventListener("canplay", onCanPlay);
+      video.addEventListener("playing", onPlay);
+      video.addEventListener("pause", onPause);
+      video.addEventListener("waiting", onWaiting);
+      video.addEventListener("ended", onEnded);
+      video.addEventListener("error", onError);
 
       readyTimer = window.setTimeout(() => {
         if (!disposed && !stateRef.current.ready) {
           applyState({
-            error:
-              "Twitch did not allow embedded preview in this window — you can still scrub the timeline, mark cuts, and export VOD clips.",
+            error: "The Twitch stream preview timed out. You can still mark cuts and export clips.",
           });
         }
-      }, 10000);
+      }, 15000);
 
-      const parentHost = window.location.hostname || "localhost";
-      const parents = Array.from(new Set([parentHost, "localhost", "127.0.0.1"]));
-      const player = new api.Player(host, {
-        video: videoId,
-        parent: parents,
-        controls: false,
-        autoplay: false,
-        muted: false,
-        width: "100%",
-        height: "100%",
-      });
-
-      player.addEventListener(api.Player.READY, () => {
-        if (disposed) return;
-        window.clearTimeout(readyTimer);
-        let duration = 0;
-        try {
-          duration = player.getDuration();
-          player.setVolume(volumeRef.current / 100);
-        } catch {
-          /* ignore */
-        }
-        applyState({
-          ready: true,
-          error: null,
-          durationMs: Number.isFinite(duration) ? Math.round(duration * 1000) : 0,
+      if (isHls && Hls.isSupported()) {
+        hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
         });
-      });
-
-      player.addEventListener(api.Player.PLAY, () => {
-        if (!disposed) applyState({ playing: true, buffering: false, ready: true });
-      });
-      player.addEventListener(api.Player.PLAYING, () => {
-        if (!disposed) applyState({ playing: true, buffering: false, ready: true });
-      });
-      player.addEventListener(api.Player.PAUSE, () => {
-        if (!disposed) applyState({ playing: false, buffering: false });
-      });
-      player.addEventListener(api.Player.ENDED, () => {
-        if (!disposed) applyState({ playing: false, buffering: false });
-      });
+        hls.on(Hls.Events.ERROR, (_evt, data) => {
+          if (data.fatal && !disposed) {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              hls?.startLoad();
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              hls?.recoverMediaError();
+            } else {
+              onError();
+            }
+          }
+        });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+      } else {
+        video.src = url;
+      }
 
       const adapter: PlayerAdapter = {
-        play: () => player.play(),
-        pause: () => player.pause(),
-        seekSeconds: (seconds) => player.seek(seconds),
-        getCurrentTime: () => player.getCurrentTime(),
-        getDuration: () => player.getDuration(),
-        getLoadedFraction: () => 0,
-        isMuted: () => player.getMuted(),
-        setMuted: (muted) => player.setMuted(muted),
-        setVolume: (vol) => player.setVolume(vol / 100),
-        setPlaybackRate: () => undefined,
+        play: () => {
+          void video.play().catch(() => undefined);
+        },
+        pause: () => video.pause(),
+        seekSeconds: (seconds) => {
+          if (Number.isFinite(seconds)) video.currentTime = Math.max(0, seconds);
+        },
+        getCurrentTime: () => video.currentTime || 0,
+        getDuration: () => (Number.isFinite(video.duration) ? video.duration : 0),
+        getLoadedFraction: () => {
+          const dur = video.duration;
+          if (!Number.isFinite(dur) || dur <= 0 || video.buffered.length === 0) return 0;
+          return Math.min(1, video.buffered.end(video.buffered.length - 1) / dur);
+        },
+        isMuted: () => video.muted,
+        setMuted: (muted) => {
+          video.muted = muted;
+        },
+        setVolume: (vol) => {
+          video.volume = Math.min(1, Math.max(0, vol / 100));
+        },
+        setPlaybackRate: (rate) => {
+          video.playbackRate = rate;
+        },
         destroy: () => {
-          player.destroy?.();
+          video.pause();
+          video.removeEventListener("loadedmetadata", markReady);
+          video.removeEventListener("canplay", onCanPlay);
+          video.removeEventListener("playing", onPlay);
+          video.removeEventListener("pause", onPause);
+          video.removeEventListener("waiting", onWaiting);
+          video.removeEventListener("ended", onEnded);
+          video.removeEventListener("error", onError);
+          hls?.destroy();
+          video.removeAttribute("src");
+          video.load();
           if (hostRef.current) hostRef.current.innerHTML = "";
         },
       };
+
       created = adapter;
       adapterRef.current = adapter;
     };
 
     const boot = async () => {
       try {
-        if (source === "twitch") await createTwitch();
-        else await createYouTube();
+        if (source === "twitch") {
+          if (streamUrl) {
+            await createNativeStream(streamUrl);
+          } else {
+            applyState({
+              ready: false,
+              error:
+                "No direct preview stream was returned for this Twitch link. You can still scrub the timeline and export clips.",
+            });
+          }
+        } else {
+          await createYouTube();
+        }
       } catch (err) {
         if (!disposed) {
           applyState({
@@ -427,11 +413,11 @@ export function useMediaPlayer(
       try {
         created?.destroy();
       } catch {
-        /* The iframe may already be gone. */
+        /* ignore cleanup errors */
       }
       if (adapterRef.current === created) adapterRef.current = null;
     };
-  }, [videoId, source, hostRef, applyState]);
+  }, [videoId, source, streamUrl, hostRef, applyState]);
 
   /* Keep the playhead in a ref so playback does not re-render React. */
   useEffect(() => {
@@ -478,7 +464,7 @@ export function useMediaPlayer(
     };
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
-  }, [videoId, source, loopRef, applyState]);
+  }, [videoId, source, streamUrl, loopRef, applyState]);
 
   const play = useCallback(() => {
     try {

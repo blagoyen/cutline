@@ -10,7 +10,7 @@ import {
 
 export type GlobalInfoStatus = "local" | "cached" | "live";
 
-const CACHE_KEY = "ytcutter.globalInfo.v1";
+const CACHE_KEY = "cutline.globalInfo.v1";
 const FETCH_TIMEOUT_MS = 8_000;
 const MIN_CHECK_GAP_MS = 30_000;
 

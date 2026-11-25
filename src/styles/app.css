@@ -9,29 +9,32 @@
 }
 
 :root {
-  --background: #f4f5f9;
+  --background: #fafafa;
   --surface: #ffffff;
-  --surface-2: #f8f9fc;
-  --text-primary: #11131a;
-  --text-secondary: #535869;
-  --accent: #4f46e5;
-  --accent-ink: #3730a3;
-  --accent-soft: rgba(79, 70, 229, 0.1);
-  --source-youtube: #e62e2d;
-  --source-youtube-soft: rgba(230, 46, 45, 0.1);
-  --source-twitch: #9146ff;
-  --source-twitch-soft: rgba(145, 70, 255, 0.12);
-  --border: #dfe3ec;
-  --border-soft: #eceff5;
-  --border-strong: #c5cbd9;
-  --muted: #eef0f6;
-  --label: #7a8194;
-  --success: #16805a;
-  --warning: #b46918;
-  --danger: #d12c2c;
-  --shadow-sm: 0 1px 2px rgba(17, 19, 26, 0.04), 0 4px 12px rgba(17, 19, 26, 0.03);
-  --radius: 8px;
-  --radius-sm: 6px;
+  --surface-2: #f4f4f5;
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --accent: #6366f1;
+  --accent-ink: #4f46e5;
+  --accent-soft: rgba(99, 102, 241, 0.1);
+  --cta-bg: #09090b;
+  --cta-bg-hover: #27272a;
+  --cta-fg: #ffffff;
+  --source-youtube: #e11d48;
+  --source-youtube-soft: rgba(225, 29, 72, 0.09);
+  --source-twitch: #8b5cf6;
+  --source-twitch-soft: rgba(139, 92, 246, 0.11);
+  --border: #e4e4e7;
+  --border-soft: #f4f4f5;
+  --border-strong: #d4d4d8;
+  --muted: #f4f4f5;
+  --label: #71717a;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --shadow-sm: 0 1px 2px rgba(9, 9, 11, 0.04), 0 8px 24px -12px rgba(9, 9, 11, 0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
   --font-sans: "InterVariable", "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui,
     -apple-system, sans-serif;
   --font-mono: "Cascadia Mono", "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono",
@@ -40,28 +43,31 @@
 }
 
 html[data-theme="dark"] {
-  --background: #0b0d13;
-  --surface: #121620;
-  --surface-2: #171c28;
-  --text-primary: #f2f4f8;
-  --text-secondary: #9aa2b4;
-  --accent: #6366f1;
-  --accent-ink: #818cf8;
-  --accent-soft: rgba(99, 102, 241, 0.16);
-  --source-youtube: #ff4d4c;
-  --source-youtube-soft: rgba(255, 77, 76, 0.14);
-  --source-twitch: #a970ff;
-  --source-twitch-soft: rgba(169, 112, 255, 0.16);
-  --border: #252b3b;
-  --border-soft: #1b202e;
-  --border-strong: #363f56;
-  --muted: #1b202e;
-  --label: #7e879c;
-  --success: #34d399;
+  --background: #09090b;
+  --surface: #111114;
+  --surface-2: #18181c;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --accent: #818cf8;
+  --accent-ink: #6366f1;
+  --accent-soft: rgba(129, 140, 248, 0.14);
+  --cta-bg: #fafafa;
+  --cta-bg-hover: #e4e4e7;
+  --cta-fg: #09090b;
+  --source-youtube: #fb7185;
+  --source-youtube-soft: rgba(251, 113, 133, 0.14);
+  --source-twitch: #a78bfa;
+  --source-twitch-soft: rgba(167, 139, 250, 0.16);
+  --border: #27272a;
+  --border-soft: #1c1c20;
+  --border-strong: #3f3f46;
+  --muted: #18181c;
+  --label: #71717a;
+  --success: #4ade80;
   --warning: #fbbf24;
   --danger: #f87171;
-  --frame-dark: #07090e;
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --frame-dark: #050507;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -12px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
@@ -4333,7 +4339,7 @@ html[data-theme="dark"] .deck-buffered {
 }
 
 /* ============================================================================
-   Cutline 2.0 — Platform-Agnostic Broadcast Studio Redesign (YouTube & Twitch)
+   Cutline 2.0 — Modern Minimalistic Studio Redesign
    ============================================================================ */
 
 ::selection {
@@ -4341,78 +4347,105 @@ html[data-theme="dark"] .deck-buffered {
 }
 
 :root {
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-sm: 8px;
 }
 
-button,
-input,
-select,
-.btn,
-.btn-chip,
-.icon-btn,
-.merge-box,
-.summary-card,
-.stage,
-.timeline,
-.clip-toolbar,
-.clips,
-.downloads,
-.urlbar,
-.dep-pill,
-.global-info {
-  border-radius: var(--radius-sm);
+.player-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #050507;
+  display: block;
 }
 
-.summary-card,
-.stage,
-.timeline,
-.clip-toolbar,
-.clips,
-.downloads,
-.player-frame {
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+.brand-svg {
+  flex: none;
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(99, 102, 241, 0.22));
+  transition: transform 0.2s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+
+.brand:hover .brand-svg {
+  transform: scale(1.06);
 }
 
 .topbar {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 0 var(--border-soft);
-}
-
-.brand-mark {
-  background: linear-gradient(135deg, var(--accent), #7c3aed);
-  border-radius: 5px;
-  box-shadow: 0 2px 8px var(--accent-soft);
+  box-shadow: none;
 }
 
 .brand-name {
-  letter-spacing: 0.14em;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
 }
 
-/* Source badges in HeroPanel */
+/* Centered minimalistic landing state */
+.app-shell.is-landing .workspace {
+  max-width: 780px;
+  padding-top: 72px;
+  padding-bottom: 56px;
+}
+
+.app-shell.has-video .workspace {
+  max-width: 1120px;
+  padding-top: 22px;
+}
+
+.minimal-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 32px;
+  animation: panelIn 0.35s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+.minimal-hero-mark {
+  margin-bottom: 20px;
+}
+
+.minimal-headline {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.minimal-lede {
+  max-width: 500px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
 .source-pills {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 22px;
 }
 
 .source-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .source-pill-youtube svg {
@@ -4423,24 +4456,123 @@ select,
   color: var(--source-twitch);
 }
 
-.source-pill-youtube.is-active {
-  border-color: var(--source-youtube);
-  background: var(--source-youtube-soft);
-  color: var(--text-primary);
+/* Compact session strip when a video is loaded */
+.studio {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.source-pill-twitch.is-active {
-  border-color: var(--source-twitch);
-  background: var(--source-twitch-soft);
-  color: var(--text-primary);
+.studio-downloads {
+  margin-top: 20px;
 }
 
-/* UrlBar live source detection */
+.session-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.session-pill b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.session-sep {
+  width: 1px;
+  height: 12px;
+  background: var(--border);
+}
+
+.session-source {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.session-source-youtube {
+  color: var(--source-youtube);
+}
+
+.session-source-twitch {
+  color: var(--source-twitch);
+}
+
+/* Clean rounded surfaces & hairline borders */
+button,
+input,
+select,
+.btn,
+.btn-chip,
+.icon-btn,
+.merge-box,
+.dep-pill,
+.global-info {
+  border-radius: var(--radius-sm);
+}
+
+.stage,
+.timeline,
+.clip-toolbar,
+.clips,
+.downloads,
+.player-frame {
+  border-radius: var(--radius);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.stage,
+.timeline,
+.clip-toolbar,
+.clips,
+.downloads {
+  background: var(--surface);
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+
+.player-frame {
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+/* Minimal monochrome primary buttons */
+.btn-primary {
+  background: var(--cta-bg);
+  border-color: var(--cta-bg);
+  color: var(--cta-fg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--cta-bg-hover);
+  border-color: var(--cta-bg-hover);
+}
+
+/* UrlBar */
 .urlbar {
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+  padding: 6px 6px 6px 14px;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -4498,7 +4630,6 @@ select,
   color: var(--source-twitch);
 }
 
-/* VideoStage source eyebrow accents */
 .eyebrow-source-youtube {
   color: var(--source-youtube);
 }
@@ -4507,7 +4638,6 @@ select,
   color: var(--source-twitch);
 }
 
-/* Subtle source-aware studio accent when a Twitch VOD is loaded */
 .app-shell[data-source="twitch"] .deck-play,
 .app-shell[data-source="twitch"] .deck-playhead,
 .app-shell[data-source="twitch"] .playhead,
@@ -4535,34 +4665,18 @@ select,
   border-color: var(--source-youtube);
 }
 
-/* Studio buttons & transport polish */
-.btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent-ink);
-  border-color: var(--accent-ink);
-}
-
-.deck-play {
-  border-radius: 6px;
-}
-
+.deck-play,
 .deck-add {
-  border-radius: 6px;
-}
-
-.summary-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 .global-info {
   border-radius: 999px;
   border-left-width: 1px;
+}
+
+.app-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 32px;
 }
 

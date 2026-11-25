@@ -31,7 +31,7 @@ const VIDEO: VideoInfo = {
 };
 
 const SETTINGS: Settings = {
-  outputDir: "C:\\Users\\blago\\Videos\\YT Cutter",
+  outputDir: "C:\\Users\\blago\\Videos\\Cutline",
   defaultQuality: "best",
   defaultFormat: "mp4",
   preciseCutting: false,
@@ -198,6 +198,7 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
           title: "Late Night Ranked Session — Twitch VOD",
           uploader: "TwitchCreator",
           webpageUrl: `https://www.twitch.tv/videos/${id}`,
+          streamUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
           durationMs: 7_200_000,
           maxHeight: 1080,
           heights: [1080, 720, 480, 360],
@@ -286,8 +287,8 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
     }
     case "install_pot_provider": {
       await sleep(1800);
-      settings.potPluginDir = "C:\\Users\\blago\\AppData\\Roaming\\com.ytcutter.app\\bin\\pot-provider\\plugins";
-      settings.potServerDir = "C:\\Users\\blago\\AppData\\Roaming\\com.ytcutter.app\\bin\\pot-provider\\source\\server";
+      settings.potPluginDir = "C:\\Users\\blago\\AppData\\Roaming\\com.cutline.studio\\bin\\pot-provider\\plugins";
+      settings.potServerDir = "C:\\Users\\blago\\AppData\\Roaming\\com.cutline.studio\\bin\\pot-provider\\source\\server";
       settings.potProviderEnabled = true;
       return {
         pluginDir: settings.potPluginDir,
@@ -324,7 +325,7 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
       return "1.9.0" as T;
     case "pick_directory":
       await sleep(300);
-      return "D:\\Exports\\YT Cutter" as T;
+      return "D:\\Exports\\Cutline" as T;
     case "pick_binary":
       await sleep(300);
       return "C:\\Tools\\yt-dlp.exe" as T;

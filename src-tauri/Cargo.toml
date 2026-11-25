@@ -1,5 +1,5 @@
 [package]
-name = "yt-cutter"
+name = "cutline"
 version = "2.0.0"
 description = "Cut YouTube videos and Twitch VODs into clips, locally."
 authors = ["Cutline"]
@@ -7,7 +7,7 @@ edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "yt_cutter_lib"
+name = "cutline_lib"
 crate-type = ["rlib"]
 
 [build-dependencies]

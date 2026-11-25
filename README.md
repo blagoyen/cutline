@@ -16,7 +16,7 @@
 
 ## What it is
 
-Cutline (formerly YT Cutter) is a fast desktop clipper for slicing moments out of **YouTube videos** and **Twitch VODs / clips**. It downloads only the sections you choose, keeps every file on your machine, and never asks you to upload anything.
+Cutline is a fast desktop clipper for slicing moments out of **YouTube videos** and **Twitch VODs / clips**. It downloads only the sections you choose, keeps every file on your machine, and never asks you to upload anything.
 
 Instead of downloading an entire multi-hour VOD or video just to trim out a 30-second highlight, the player, timeline, and export queue live together in one studio window.
 
@@ -31,7 +31,7 @@ Instead of downloading an entire multi-hour VOD or video just to trim out a 30-s
 
 Grab the installer from `src-tauri/target/release/bundle/nsis/Cutline_2.0.0_x64-setup.exe` after building, or download a release.
 
-Current build: 2,577,774 bytes · SHA-256 `D2CE63C2E6406AC17A2BEB5B2EDBFC512C73C6D4082AB59AFD59014AAF2EF053`.
+Current build: 2,796,146 bytes · SHA-256 `F8C6B4DBD7C283CA8DE98305446B65DA68EA7F4EAF12CAFD2C1522AC9E4A96C7`.
 
 You need:
 

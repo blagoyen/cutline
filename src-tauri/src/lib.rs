@@ -67,9 +67,9 @@ pub fn run() {
             let default_output_dir = app
                 .path()
                 .video_dir()
-                .map(|dir| dir.join("YT Cutter"))
-                .or_else(|_| app.path().home_dir().map(|dir| dir.join("Videos").join("YT Cutter")))
-                .unwrap_or_else(|_| PathBuf::from("YT Cutter"))
+                .map(|dir| dir.join("Cutline"))
+                .or_else(|_| app.path().home_dir().map(|dir| dir.join("Videos").join("Cutline")))
+                .unwrap_or_else(|_| PathBuf::from("Cutline"))
                 .to_string_lossy()
                 .into_owned();
             let _ = std::fs::create_dir_all(&default_output_dir);

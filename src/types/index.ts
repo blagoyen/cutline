@@ -36,6 +36,7 @@ export interface VideoInfo {
   thumbnail: string;
   uploader: string | null;
   webpageUrl: string;
+  streamUrl?: string | null;
   isLive: boolean;
   maxHeight: number;
   heights: number[];

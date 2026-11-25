@@ -12,7 +12,7 @@ export interface GlobalInfo {
 
 /** GitHub contents URL for the shared topbar notice. */
 export const GLOBAL_INFO_URL =
-  "https://api.github.com/repos/blagoyen/yt-cutter/contents/src/config/global-info.json";
+  "https://api.github.com/repos/blagoyen/cutline/contents/src/config/global-info.json";
 
 export const GLOBAL_INFO_POLL_MS = 5 * 60 * 1000;
 

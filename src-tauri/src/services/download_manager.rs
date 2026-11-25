@@ -700,7 +700,7 @@ impl DownloadManager {
             .await
             .map_err(|err| CommandError::new("OUTPUT_DIR_ERROR", err.to_string()))?;
 
-        let tmp_root = output_dir.join(".ytcutter-tmp");
+        let tmp_root = output_dir.join(".cutline-tmp");
         let tmp_dir = tmp_root.join(&task.id);
         let _ = tokio::fs::remove_dir_all(&tmp_dir).await;
         tokio::fs::create_dir_all(&tmp_dir)
