@@ -4537,29 +4537,41 @@ html[data-theme="light"] .app-shell.has-video .ascii-field-ambient {
 .editorial-hero {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 22px;
+  margin-bottom: 20px;
+  padding: 28px 32px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 65%, transparent);
+  background: color-mix(in srgb, var(--background) 76%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
   animation: panelIn 0.35s cubic-bezier(0.2, 0.85, 0.25, 1) both;
 }
 
 .editorial-hero-top {
-  max-width: 640px;
+  max-width: 660px;
 }
 
 .editorial-headline {
   font-family: var(--font-serif);
-  font-size: clamp(38px, 5vw, 58px);
+  font-size: clamp(38px, 5vw, 56px);
   font-weight: 400;
   letter-spacing: -0.025em;
   line-height: 1.04;
   color: var(--text-primary);
-  margin-bottom: 18px;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+  margin-bottom: 16px;
+}
+
+html[data-theme="light"] .editorial-headline {
+  text-shadow: none;
 }
 
 .editorial-lede {
   font-size: 15px;
   line-height: 1.62;
-  color: var(--label);
+  color: var(--text-secondary);
 }
 
 .editorial-lede span {
@@ -4572,16 +4584,22 @@ html[data-theme="light"] .app-shell.has-video .ascii-field-ambient {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
 }
 
 .editorial-kicker {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.1em;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .editorial-kicker-dot {
@@ -4622,9 +4640,12 @@ html[data-theme="light"] .app-shell.has-video .ascii-field-ambient {
 
 /* Landing ASCII band + 3-column architectural spec grid */
 .landing-showcase {
-  margin-top: 28px;
+  margin-top: 24px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   overflow: hidden;
 }
 
@@ -4749,6 +4770,25 @@ html[data-theme="light"] .app-shell.has-video .ascii-field-ambient {
   width: 100%;
   border-bottom: 0;
   padding-bottom: 0;
+}
+
+.urlbar-meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--background) 78%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+.urlbar-hint,
+.urlbar-privacy {
+  color: var(--text-secondary);
 }
 
 .urlbar {
