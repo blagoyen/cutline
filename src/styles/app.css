@@ -4449,8 +4449,11 @@ html[data-theme="light"] .app-shell.has-video .ascii-field-ambient {
   transform: scale(1.06);
 }
 
-/* TopBar */
+/* TopBar — symmetric 3-column grid keeps globalInfo dead-center with zero overlap */
 .topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
   background: color-mix(in srgb, var(--background) 88%, transparent);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
@@ -4459,6 +4462,7 @@ html[data-theme="light"] .app-shell.has-video .ascii-field-ambient {
 }
 
 .topbar .brand {
+  justify-self: start;
   flex: 0 0 auto;
   gap: 10px;
 }
@@ -4477,17 +4481,18 @@ html[data-theme="light"] .app-shell.has-video .ascii-field-ambient {
   left: auto;
   top: auto;
   transform: none;
-  flex: 1 1 auto;
+  justify-self: center;
   min-width: 0;
-  max-width: 440px;
+  max-width: min(460px, 42vw);
   width: auto;
-  margin: 0 auto;
+  margin: 0;
   display: flex;
   justify-content: center;
   pointer-events: none;
 }
 
 .topbar-right {
+  justify-self: end;
   flex: 0 0 auto;
   white-space: nowrap;
 }
