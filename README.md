@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>v2.1.0</strong> &nbsp;·&nbsp; YouTube &amp; Twitch VODs &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Tauri 2 &nbsp;·&nbsp; local-first
+  <strong>v2.1.1</strong> &nbsp;·&nbsp; YouTube &amp; Twitch VODs &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Tauri 2 &nbsp;·&nbsp; local-first
 </p>
 
 ---
@@ -29,9 +29,9 @@ Instead of downloading an entire multi-hour VOD or video just to trim out a 30-s
 
 ## Install
 
-Grab the installer from `src-tauri/target/release/bundle/nsis/Cutline_2.1.0_x64-setup.exe` after building, or download a release.
+Grab the installer from `src-tauri/target/release/bundle/nsis/Cutline_2.1.1_x64-setup.exe` after building, or download a release.
 
-Current build: 2,817,169 bytes · SHA-256 `A3F6B4316FA0FCD62003A50849BF5477F3EB09C9CAC12CC60393DC9C264B1C07`.
+Current build: 2,816,415 bytes · SHA-256 `63BFCC223843D9D5FF30DCB93DF553CBB4EF1F4971E6B373539B9FB7652F6C0C`.
 
 You need:
 

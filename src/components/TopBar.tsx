@@ -23,7 +23,7 @@ interface TopBarProps {
 
 function dependencySummary(dependencies: DependencyReport | null) {
   if (!dependencies) {
-    return { tone: "idle", label: "Checking tools" };
+    return { tone: "idle", label: "Checking tools", detail: "" };
   }
   const missing = [
     dependencies.ytDlp.ready ? null : "yt-dlp",
@@ -31,11 +31,12 @@ function dependencySummary(dependencies: DependencyReport | null) {
     dependencies.ffprobe.ready ? null : "FFprobe",
   ].filter(Boolean);
   if (missing.length === 0) {
-    return { tone: "ok", label: "Tools ready" };
+    return { tone: "ok", label: "Tools ready", detail: "" };
   }
   return {
     tone: missing.length >= 2 ? "error" : "warn",
-    label: `${missing.join(" + ")} missing`,
+    label: missing.length === 1 ? `${missing[0]} missing` : `${missing.length} tools missing`,
+    detail: `Missing: ${missing.join(", ")} — open Settings to install or configure`,
   };
 }
 
@@ -143,7 +144,7 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
           type="button"
           className={`dep-pill dep-${summary.tone}`}
           onClick={onOpenSettings}
-          title={versions || "Open settings to configure yt-dlp and FFmpeg"}
+          title={summary.detail || versions || "Open settings to configure yt-dlp and FFmpeg"}
         >
           <span className={`dot dot-${summary.tone}`} aria-hidden="true" />
           <span>{summary.label}</span>
