@@ -43,9 +43,11 @@ jobs:
         run: npx tauri ios init --ci
 
       - name: Build Rust staticlib for aarch64-apple-ios
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: "15.0"
         run: |
           set -euo pipefail
-          cargo build --manifest-path src-tauri/Cargo.toml --release --target aarch64-apple-ios --lib
+          cargo rustc --manifest-path src-tauri/Cargo.toml --release --target aarch64-apple-ios --lib --crate-type staticlib
           mkdir -p src-tauri/gen/apple/Externals/arm64/release
           cp src-tauri/target/aarch64-apple-ios/release/libcutline_lib.a src-tauri/gen/apple/Externals/arm64/release/libapp.a
           ls -lh src-tauri/gen/apple/Externals/arm64/release/libapp.a
