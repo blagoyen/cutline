@@ -940,7 +940,7 @@ impl DownloadManager {
             || task.format.eq_ignore_ascii_case("m4a");
         let ext = if audio_only { "m4a" } else { "mp4" };
         let base = sanitize_filename(&task.file_base);
-        let destination = unique_path(&output_dir, &base, ext);
+        let destination = unique_path(&output_dir, &base, ext).await;
 
         self.apply_progress_scaled(&task.id, &Progress::empty(), DownloadStatus::Processing, 0, 1);
 
