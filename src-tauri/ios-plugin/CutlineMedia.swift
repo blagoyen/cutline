@@ -111,7 +111,11 @@ public func cutline_ios_export_clip(
             exporter.outputFileType = audioOnly ? .m4a : .mp4
             exporter.shouldOptimizeForNetworkUse = true
 
-            await exporter.export()
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                exporter.exportAsynchronously {
+                    continuation.resume()
+                }
+            }
 
             switch exporter.status {
             case .completed:

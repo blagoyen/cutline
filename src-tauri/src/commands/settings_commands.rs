@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, State};
+#[cfg(not(target_os = "ios"))]
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
@@ -153,39 +154,55 @@ pub async fn update_ytdlp(
 
 #[tauri::command]
 pub async fn pick_directory(app: AppHandle, default_path: Option<String>) -> Option<String> {
-    let (tx, rx) = tokio::sync::oneshot::channel::<Option<PathBuf>>();
+    #[cfg(target_os = "ios")]
+    {
+        let _ = (&app, &default_path);
+        return None;
+    }
+    #[cfg(not(target_os = "ios"))]
+    {
+        let (tx, rx) = tokio::sync::oneshot::channel::<Option<PathBuf>>();
 
-    let dialog = app
-        .dialog()
-        .file()
-        .set_title("Choose a download folder");
-    let dialog = match default_path {
-        Some(path) if Path::new(&path).is_dir() => dialog.set_directory(PathBuf::from(path)),
-        _ => dialog,
-    };
+        let dialog = app
+            .dialog()
+            .file()
+            .set_title("Choose a download folder");
+        let dialog = match default_path {
+            Some(path) if Path::new(&path).is_dir() => dialog.set_directory(PathBuf::from(path)),
+            _ => dialog,
+        };
 
-    dialog.pick_folder(move |selection| {
-        let resolved = selection.and_then(|file_path| file_path.into_path().ok());
-        let _ = tx.send(resolved);
-    });
+        dialog.pick_folder(move |selection| {
+            let resolved = selection.and_then(|file_path| file_path.into_path().ok());
+            let _ = tx.send(resolved);
+        });
 
-    rx.await.ok().flatten().map(|p| p.to_string_lossy().into_owned())
+        rx.await.ok().flatten().map(|p| p.to_string_lossy().into_owned())
+    }
 }
 
 #[tauri::command]
 pub async fn pick_binary(app: AppHandle) -> Option<String> {
-    let (tx, rx) = tokio::sync::oneshot::channel::<Option<PathBuf>>();
+    #[cfg(target_os = "ios")]
+    {
+        let _ = &app;
+        return None;
+    }
+    #[cfg(not(target_os = "ios"))]
+    {
+        let (tx, rx) = tokio::sync::oneshot::channel::<Option<PathBuf>>();
 
-    let dialog = app.dialog().file().set_title("Select executable");
-    #[cfg(windows)]
-    let dialog = dialog.add_filter("Executable", &["exe"]);
+        let dialog = app.dialog().file().set_title("Select executable");
+        #[cfg(windows)]
+        let dialog = dialog.add_filter("Executable", &["exe"]);
 
-    dialog.pick_file(move |selection| {
-        let resolved = selection.and_then(|file_path| file_path.into_path().ok());
-        let _ = tx.send(resolved);
-    });
+        dialog.pick_file(move |selection| {
+            let resolved = selection.and_then(|file_path| file_path.into_path().ok());
+            let _ = tx.send(resolved);
+        });
 
-    rx.await.ok().flatten().map(|p| p.to_string_lossy().into_owned())
+        rx.await.ok().flatten().map(|p| p.to_string_lossy().into_owned())
+    }
 }
 
 #[tauri::command]
@@ -224,9 +241,17 @@ pub fn reveal_path(app: AppHandle, path: String) -> Result<(), CommandError> {
             "That file or folder no longer exists.",
         ));
     }
-    app.opener()
-        .reveal_item_in_dir(path)
-        .map_err(|err| CommandError::new("OPEN_FAILED", err.to_string()))
+    #[cfg(target_os = "ios")]
+    {
+        let _ = &app;
+        return Ok(());
+    }
+    #[cfg(not(target_os = "ios"))]
+    {
+        app.opener()
+            .reveal_item_in_dir(path)
+            .map_err(|err| CommandError::new("OPEN_FAILED", err.to_string()))
+    }
 }
 
 #[tauri::command]
