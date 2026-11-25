@@ -5,8 +5,16 @@ use crate::models::video::{Chapter, FormatInfo, VideoInfo, VideoSource};
 use crate::services::binaries::{DependencyInfo, DependencyReport};
 
 const TWITCH_CLIENT_ID: &str = "kimne78kx3ncx6brgo4mv6wki5h1ko";
+const IOS_CLIENT_VERSION: &str = "20.10.4";
 const IOS_UA: &str =
-    "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)";
+    "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X)";
+
+#[allow(dead_code)]
+pub struct ResolvedIosMedia {
+    pub info: VideoInfo,
+    pub video_url: Option<String>,
+    pub audio_url: Option<String>,
+}
 
 /// On iOS, cutting and extraction run 100% in-process (AVFoundation + Rust HTTP),
 /// so desktop CLI binaries (yt-dlp / FFmpeg / FFprobe) are not needed.
@@ -42,6 +50,14 @@ fn http_client() -> Result<reqwest::Client, CommandError> {
 /// Probe a canonical YouTube or Twitch URL directly on-device without spawning yt-dlp.
 #[allow(dead_code)]
 pub async fn probe(canonical_url: &str) -> Result<VideoInfo, CommandError> {
+    Ok(probe_with_streams(canonical_url, "best").await?.info)
+}
+
+#[allow(dead_code)]
+pub async fn probe_with_streams(
+    canonical_url: &str,
+    quality: &str,
+) -> Result<ResolvedIosMedia, CommandError> {
     let lower = canonical_url.to_lowercase();
     if lower.contains("twitch.tv/videos/") {
         let id = canonical_url
@@ -50,7 +66,13 @@ pub async fn probe(canonical_url: &str) -> Result<VideoInfo, CommandError> {
             .and_then(|s| s.split(&['?', '#', '/'][..]).next())
             .filter(|s| !s.is_empty())
             .ok_or_else(|| CommandError::new("INVALID_URL", "Invalid Twitch VOD URL."))?;
-        probe_twitch_vod(id, canonical_url).await
+        let info = probe_twitch_vod(id, canonical_url).await?;
+        let video_url = info.stream_url.clone();
+        Ok(ResolvedIosMedia {
+            info,
+            video_url,
+            audio_url: None,
+        })
     } else if lower.contains("clips.twitch.tv/") || lower.contains("/clip/") {
         let slug = canonical_url
             .rsplit('/')
@@ -58,11 +80,17 @@ pub async fn probe(canonical_url: &str) -> Result<VideoInfo, CommandError> {
             .and_then(|s| s.split(&['?', '#'][..]).next())
             .filter(|s| !s.is_empty())
             .ok_or_else(|| CommandError::new("INVALID_URL", "Invalid Twitch Clip URL."))?;
-        probe_twitch_clip(slug, canonical_url).await
+        let info = probe_twitch_clip(slug, canonical_url).await?;
+        let video_url = info.stream_url.clone();
+        Ok(ResolvedIosMedia {
+            info,
+            video_url,
+            audio_url: None,
+        })
     } else {
         let id = extract_youtube_id(canonical_url)
             .ok_or_else(|| CommandError::new("INVALID_URL", "Invalid YouTube URL."))?;
-        probe_youtube(&id, canonical_url).await
+        probe_youtube(&id, canonical_url, quality).await
     }
 }
 
@@ -314,125 +342,143 @@ async fn probe_twitch_clip(slug: &str, canonical_url: &str) -> Result<VideoInfo,
     })
 }
 
-async fn probe_youtube(video_id: &str, canonical_url: &str) -> Result<VideoInfo, CommandError> {
+async fn probe_youtube(
+    video_id: &str,
+    canonical_url: &str,
+    quality: &str,
+) -> Result<ResolvedIosMedia, CommandError> {
     let client = http_client()?;
-    let clients = [
-        json!({
-            "clientName": "IOS",
-            "clientVersion": "19.45.4",
-            "deviceMake": "Apple",
-            "deviceModel": "iPhone16,2",
-            "osName": "iPhone",
-            "osVersion": "18.1.0.22B83",
-            "hl": "en",
-            "gl": "US"
-        }),
-        json!({
-            "clientName": "ANDROID",
-            "clientVersion": "19.45.38",
-            "androidSdkVersion": 34,
-            "hl": "en",
-            "gl": "US"
-        }),
-    ];
+    let target_height = quality.trim_end_matches('p').parse::<u32>().ok();
 
-    let mut last_reason = String::from("Could not extract YouTube stream.");
-
-    for ctx in clients {
-        let body = json!({
-            "videoId": video_id,
-            "context": { "client": ctx },
-            "contentCheckOk": true,
-            "racyCheckOk": true
-        });
-
-        let Ok(resp) = client
-            .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
-            .header("User-Agent", IOS_UA)
-            .json(&body)
-            .send()
-            .await
-        else {
-            continue;
-        };
-
-        let Ok(payload) = resp.json::<Value>().await else {
-            continue;
-        };
-
-        let status = payload
-            .pointer("/playabilityStatus/status")
-            .and_then(|v| v.as_str())
-            .unwrap_or("ERROR");
-        if status != "OK" {
-            if let Some(reason) = payload
-                .pointer("/playabilityStatus/reason")
-                .and_then(|v| v.as_str())
-            {
-                last_reason = reason.to_string();
+    let body = json!({
+        "videoId": video_id,
+        "context": {
+            "client": {
+                "clientName": "IOS",
+                "clientVersion": IOS_CLIENT_VERSION,
+                "deviceMake": "Apple",
+                "deviceModel": "iPhone16,2",
+                "osName": "iPhone",
+                "osVersion": "18.3.2.22D82",
+                "hl": "en",
+                "gl": "US"
             }
-            continue;
-        }
+        },
+        "contentCheckOk": true,
+        "racyCheckOk": true
+    });
 
-        let details = payload.get("videoDetails").cloned().unwrap_or(Value::Null);
-        let title = details
-            .get("title")
+    let resp = client
+        .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
+        .header("User-Agent", IOS_UA)
+        .header("X-YouTube-Client-Name", "5")
+        .header("X-YouTube-Client-Version", IOS_CLIENT_VERSION)
+        .header("Origin", "https://www.youtube.com")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|err| {
+            CommandError::new("YOUTUBE_NETWORK_ERROR", "Could not reach YouTube.")
+                .with_detail(err.to_string())
+        })?;
+
+    let status_code = resp.status();
+    if !status_code.is_success() {
+        return Err(CommandError::new(
+            "YOUTUBE_HTTP_ERROR",
+            format!("YouTube returned HTTP {}.", status_code.as_u16()),
+        ));
+    }
+
+    let payload: Value = resp.json().await.map_err(|err| {
+        CommandError::new("YOUTUBE_PARSE_ERROR", "Could not parse YouTube response.")
+            .with_detail(err.to_string())
+    })?;
+
+    let status = payload
+        .pointer("/playabilityStatus/status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("ERROR");
+    if status != "OK" {
+        let reason = payload
+            .pointer("/playabilityStatus/reason")
             .and_then(|v| v.as_str())
-            .unwrap_or("YouTube Video")
-            .to_string();
-        let uploader = details
-            .get("author")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-        let duration_ms = details
-            .get("lengthSeconds")
-            .and_then(|v| v.as_str())
-            .and_then(|s| s.parse::<u64>().ok())
-            .unwrap_or(0)
-            * 1000;
-        let is_live = details
-            .get("isLiveContent")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-            && duration_ms == 0;
-        let view_count = details
-            .get("viewCount")
-            .and_then(|v| v.as_str())
-            .and_then(|s| s.parse::<u64>().ok());
-        let thumbnail = details
-            .pointer("/thumbnail/thumbnails")
+            .unwrap_or("This YouTube video is not playable on-device.");
+        return Err(CommandError::new("YOUTUBE_UNPLAYABLE", reason));
+    }
+
+    let details = payload.get("videoDetails").cloned().unwrap_or(Value::Null);
+    let title = details
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("YouTube Video")
+        .to_string();
+    let uploader = details
+        .get("author")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let duration_ms = details
+        .get("lengthSeconds")
+        .and_then(|v| v.as_str())
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(0)
+        * 1000;
+    let is_live = details
+        .get("isLiveContent")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+        && duration_ms == 0;
+    let view_count = details
+        .get("viewCount")
+        .and_then(|v| v.as_str())
+        .and_then(|s| s.parse::<u64>().ok());
+    let thumbnail = details
+        .pointer("/thumbnail/thumbnails")
+        .and_then(|v| v.as_array())
+        .and_then(|arr| arr.last())
+        .and_then(|t| t.get("url"))
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
+
+    let hls_url = payload
+        .pointer("/streamingData/hlsManifestUrl")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    let mut heights = Vec::new();
+    let mut formats = Vec::new();
+    let mut progressive_url: Option<String> = None;
+    let mut avc_videos: Vec<(u32, u64, String)> = Vec::new();
+    let mut aac_audios: Vec<(u64, String)> = Vec::new();
+
+    for key in ["formats", "adaptiveFormats"] {
+        if let Some(arr) = payload
+            .pointer(&format!("/streamingData/{key}"))
             .and_then(|v| v.as_array())
-            .and_then(|arr| arr.last())
-            .and_then(|t| t.get("url"))
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string();
+        {
+            for f in arr {
+                let mime = f
+                    .get("mimeType")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let url_opt = f.get("url").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let bitrate = f.get("bitrate").and_then(|v| v.as_u64()).unwrap_or(0);
 
-        let hls_url = payload
-            .pointer("/streamingData/hlsManifestUrl")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-
-        let mut heights = Vec::new();
-        let mut formats = Vec::new();
-        let mut progressive_url: Option<String> = None;
-
-        for key in ["formats", "adaptiveFormats"] {
-            if let Some(arr) = payload
-                .pointer(&format!("/streamingData/{key}"))
-                .and_then(|v| v.as_array())
-            {
-                for f in arr {
-                    let h = f.get("height").and_then(|v| v.as_u64()).map(|h| h as u32);
-                    if let Some(height) = h {
-                        if height > 0 && !heights.contains(&height) {
-                            heights.push(height);
+                if let Some(height) = f.get("height").and_then(|v| v.as_u64()).map(|h| h as u32) {
+                    let is_h264 = mime.starts_with("video/mp4") && mime.contains("avc1");
+                    if height > 0 && is_h264 && !heights.contains(&height) {
+                        heights.push(height);
+                    }
+                    if let Some(ref u) = url_opt {
+                        if key == "formats" && mime.starts_with("video/mp4") {
+                            progressive_url = Some(u.clone());
                         }
-                        if key == "formats" {
-                            if let Some(u) = f.get("url").and_then(|v| v.as_str()) {
-                                progressive_url = Some(u.to_string());
-                            }
+                        if is_h264 {
+                            avc_videos.push((height, bitrate, u.clone()));
                         }
+                    }
+                    if is_h264 {
                         formats.push(FormatInfo {
                             format_id: f
                                 .get("itag")
@@ -443,10 +489,7 @@ async fn probe_youtube(video_id: &str, canonical_url: &str) -> Result<VideoInfo,
                             height: Some(height),
                             width: f.get("width").and_then(|v| v.as_u64()).map(|w| w as u32),
                             fps: f.get("fps").and_then(|v| v.as_f64()),
-                            vcodec: f
-                                .get("mimeType")
-                                .and_then(|v| v.as_str())
-                                .map(|s| s.to_string()),
+                            vcodec: Some(mime.to_string()),
                             acodec: None,
                             filesize: f
                                 .get("contentLength")
@@ -458,39 +501,62 @@ async fn probe_youtube(video_id: &str, canonical_url: &str) -> Result<VideoInfo,
                                 .map(|s| s.to_string()),
                         });
                     }
+                } else if mime.starts_with("audio/mp4") && mime.contains("mp4a") {
+                    if let Some(u) = url_opt {
+                        aac_audios.push((bitrate, u));
+                    }
                 }
             }
         }
-        heights.sort_by(|a, b| b.cmp(a));
-        if heights.is_empty() {
-            if let Some(ref hls) = hls_url {
-                heights = parse_hls_heights(&client, hls).await;
-            }
-        }
-
-        let stream_url = hls_url.or(progressive_url);
-        let chapters: Vec<Chapter> = Vec::new();
-
-        return Ok(VideoInfo {
-            id: video_id.to_string(),
-            source: VideoSource::Youtube,
-            title,
-            uploader,
-            duration_ms,
-            thumbnail,
-            webpage_url: canonical_url.to_string(),
-            stream_url,
-            view_count,
-            upload_date: None,
-            is_live,
-            formats,
-            max_height: heights.first().copied().unwrap_or(0),
-            heights,
-            chapters,
-        });
     }
 
-    Err(CommandError::new("YOUTUBE_EXTRACT_FAILED", last_reason))
+    heights.sort_by(|a, b| b.cmp(a));
+    avc_videos.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)));
+    aac_audios.sort_by(|a, b| b.0.cmp(&a.0));
+
+    let chosen_video = if let Some(cap) = target_height {
+        avc_videos
+            .iter()
+            .find(|(h, _, _)| *h <= cap)
+            .or_else(|| avc_videos.first())
+            .map(|(_, _, u)| u.clone())
+    } else {
+        avc_videos.first().map(|(_, _, u)| u.clone())
+    };
+    let chosen_audio = aac_audios.first().map(|(_, u)| u.clone());
+
+    let (video_url, audio_url) = if let Some(hls) = hls_url.clone() {
+        (Some(hls), None)
+    } else if let (Some(v), Some(a)) = (chosen_video, chosen_audio) {
+        (Some(v), Some(a))
+    } else {
+        (progressive_url.clone(), None)
+    };
+
+    let chapters: Vec<Chapter> = Vec::new();
+    let info = VideoInfo {
+        id: video_id.to_string(),
+        source: VideoSource::Youtube,
+        title,
+        uploader,
+        duration_ms,
+        thumbnail,
+        webpage_url: canonical_url.to_string(),
+        stream_url: hls_url.or(progressive_url),
+        view_count,
+        upload_date: None,
+        is_live,
+        formats,
+        max_height: heights.first().copied().unwrap_or(0),
+        heights,
+        chapters,
+    };
+
+    Ok(ResolvedIosMedia {
+        info,
+        video_url,
+        audio_url,
+    })
 }
 
 async fn parse_hls_heights(client: &reqwest::Client, master_url: &str) -> Vec<u32> {
@@ -526,7 +592,8 @@ async fn parse_hls_heights(client: &reqwest::Client, master_url: &str) -> Vec<u3
 #[cfg(target_os = "ios")]
 extern "C" {
     fn cutline_ios_export_clip(
-        stream_url: *const std::os::raw::c_char,
+        video_url: *const std::os::raw::c_char,
+        audio_url: *const std::os::raw::c_char,
         sections_json: *const std::os::raw::c_char,
         output_path: *const std::os::raw::c_char,
         format: *const std::os::raw::c_char,
@@ -538,7 +605,8 @@ extern "C" {
 
 #[cfg(target_os = "ios")]
 pub async fn export_clip_avfoundation(
-    stream_url: String,
+    video_url: String,
+    audio_url: Option<String>,
     sections_json: String,
     output_path: String,
     format: String,
@@ -547,7 +615,9 @@ pub async fn export_clip_avfoundation(
     tokio::task::spawn_blocking(move || {
         use std::ffi::{CStr, CString};
 
-        let c_url = CString::new(stream_url)
+        let c_vurl = CString::new(video_url)
+            .map_err(|e| CommandError::new("INVALID_ARG", e.to_string()))?;
+        let c_aurl = CString::new(audio_url.unwrap_or_default())
             .map_err(|e| CommandError::new("INVALID_ARG", e.to_string()))?;
         let c_sec = CString::new(sections_json)
             .map_err(|e| CommandError::new("INVALID_ARG", e.to_string()))?;
@@ -559,7 +629,8 @@ pub async fn export_clip_avfoundation(
         let mut err_buf = vec![0i8; 1024];
         let code = unsafe {
             cutline_ios_export_clip(
-                c_url.as_ptr(),
+                c_vurl.as_ptr(),
+                c_aurl.as_ptr(),
                 c_sec.as_ptr(),
                 c_out.as_ptr(),
                 c_fmt.as_ptr(),

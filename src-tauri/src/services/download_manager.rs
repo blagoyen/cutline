@@ -917,8 +917,8 @@ impl DownloadManager {
                 .with_detail(err.to_string())
         })?;
 
-        let info = crate::services::ios_media::probe(&task.url).await?;
-        let stream_url = info.stream_url.ok_or_else(|| {
+        let resolved = crate::services::ios_media::probe_with_streams(&task.url, &task.quality).await?;
+        let video_url = resolved.video_url.ok_or_else(|| {
             CommandError::new(
                 "NO_STREAM_URL",
                 "Could not resolve a direct playable stream URL for this video on iOS.",
@@ -945,7 +945,8 @@ impl DownloadManager {
         self.apply_progress_scaled(&task.id, &Progress::empty(), DownloadStatus::Processing, 0, 1);
 
         crate::services::ios_media::export_clip_avfoundation(
-            stream_url,
+            video_url,
+            resolved.audio_url,
             sections_json,
             destination.to_string_lossy().into_owned(),
             ext.to_string(),

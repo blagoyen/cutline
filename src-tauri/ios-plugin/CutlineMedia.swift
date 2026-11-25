@@ -7,6 +7,9 @@ private struct CutSection: Decodable {
     let endMs: UInt64
 }
 
+private let cutlineIosUserAgent =
+    "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X)"
+
 private func writeError(_ message: String, to buffer: UnsafeMutablePointer<CChar>?, maxLen: Int) {
     guard let buffer = buffer, maxLen > 1 else { return }
     let bytes = Array(message.utf8.prefix(maxLen - 1))
@@ -16,11 +19,18 @@ private func writeError(_ message: String, to buffer: UnsafeMutablePointer<CChar
     buffer[bytes.count] = 0
 }
 
+private func makeAsset(url: URL) -> AVURLAsset {
+    let headers = ["User-Agent": cutlineIosUserAgent]
+    return AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+}
+
 /// Hardware-accelerated on-device trim & multi-cut merge using iOS AVFoundation.
-/// Exposed via C ABI so Cutline's Rust DownloadManager can invoke it directly in-process.
+/// Supports both muxed streams (Twitch HLS / MP4) and dual-track adaptive streams
+/// (YouTube H.264 video + AAC audio).
 @_cdecl("cutline_ios_export_clip")
 public func cutline_ios_export_clip(
-    _ streamUrlPtr: UnsafePointer<CChar>?,
+    _ videoUrlPtr: UnsafePointer<CChar>?,
+    _ audioUrlPtr: UnsafePointer<CChar>?,
     _ sectionsJsonPtr: UnsafePointer<CChar>?,
     _ outputPathPtr: UnsafePointer<CChar>?,
     _ formatPtr: UnsafePointer<CChar>?,
@@ -29,7 +39,7 @@ public func cutline_ios_export_clip(
     _ errorBufLen: Int
 ) -> Int32 {
     guard
-        let streamUrlPtr = streamUrlPtr,
+        let videoUrlPtr = videoUrlPtr,
         let sectionsJsonPtr = sectionsJsonPtr,
         let outputPathPtr = outputPathPtr,
         let formatPtr = formatPtr
@@ -38,15 +48,17 @@ public func cutline_ios_export_clip(
         return 1
     }
 
-    let streamUrlStr = String(cString: streamUrlPtr)
+    let videoUrlStr = String(cString: videoUrlPtr)
+    let audioUrlStr = audioUrlPtr.map { String(cString: $0) } ?? ""
     let sectionsJson = String(cString: sectionsJsonPtr)
     let outputPath = String(cString: outputPathPtr)
     let format = String(cString: formatPtr).lowercased()
 
-    guard let url = URL(string: streamUrlStr) else {
-        writeError("Invalid stream URL.", to: errorBuf, maxLen: errorBufLen)
+    guard let videoURL = URL(string: videoUrlStr) else {
+        writeError("Invalid video stream URL.", to: errorBuf, maxLen: errorBufLen)
         return 2
     }
+    let audioURL = !audioUrlStr.isEmpty ? URL(string: audioUrlStr) : nil
 
     guard let data = sectionsJson.data(using: .utf8),
           let sections = try? JSONDecoder().decode([CutSection].self, from: data),
@@ -62,9 +74,10 @@ public func cutline_ios_export_clip(
         try? fm.removeItem(at: outputURL)
     }
 
-    let asset = AVURLAsset(url: url)
-    let composition = AVMutableComposition()
     let audioOnly = (format == "mp3" || format == "m4a")
+    let videoAsset = makeAsset(url: videoURL)
+    let audioAsset = audioURL.map { makeAsset(url: $0) } ?? videoAsset
+    let composition = AVMutableComposition()
 
     let sem = DispatchSemaphore(value: 0)
     var exitCode: Int32 = 0
@@ -72,9 +85,9 @@ public func cutline_ios_export_clip(
 
     Task {
         do {
-            let duration = try await asset.load(.duration)
-            let videoTracks = audioOnly ? [] : try await asset.loadTracks(withMediaType: .video)
-            let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+            let duration = try await (audioOnly ? audioAsset : videoAsset).load(.duration)
+            let videoTracks = audioOnly ? [] : try await videoAsset.loadTracks(withMediaType: .video)
+            let audioTracks = try await audioAsset.loadTracks(withMediaType: .audio)
 
             let compVideo = videoTracks.first != nil
                 ? composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
