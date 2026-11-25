@@ -296,3 +296,125 @@ pub async fn verify_binary(tool: Tool, path: &str) -> CmdResult<DependencyInfo> 
         error: None,
     })
 }
+
+const YTDLP_WIN_URL: &str =
+    "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
+const FFMPEG_WIN_URL: &str =
+    "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
+
+fn managed_bin_dir() -> CmdResult<PathBuf> {
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        return Ok(PathBuf::from(local).join("Cutline").join("bin"));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            return Ok(dir.join("bin"));
+        }
+    }
+    Err(CommandError::new(
+        "INSTALL_DIR_ERROR",
+        "Could not determine a local folder to install tools.",
+    ))
+}
+
+/// Download any missing tools (yt-dlp, FFmpeg, FFprobe) from their official GitHub releases.
+pub async fn install_missing(settings: &Settings) -> CmdResult<DependencyReport> {
+    let bin_dir = managed_bin_dir()?;
+    tokio::fs::create_dir_all(&bin_dir).await.map_err(|err| {
+        CommandError::new("INSTALL_DIR_ERROR", "Could not create the tools folder.")
+            .with_detail(err.to_string())
+    })?;
+
+    let http = reqwest::Client::builder()
+        .timeout(Duration::from_secs(300))
+        .user_agent("Cutline-Installer/2.0.0")
+        .build()
+        .map_err(|err| {
+            CommandError::new("HTTP_CLIENT_FAILED", "Could not initialize the downloader.")
+                .with_detail(err.to_string())
+        })?;
+
+    if resolve(Tool::YtDlp, settings).is_none() {
+        let bytes = http
+            .get(YTDLP_WIN_URL)
+            .send()
+            .await
+            .map_err(|err| {
+                CommandError::new("DOWNLOAD_FAILED", "Could not download yt-dlp from GitHub.")
+                    .with_detail(err.to_string())
+            })?
+            .error_for_status()
+            .map_err(|err| {
+                CommandError::new("DOWNLOAD_FAILED", "GitHub rejected the yt-dlp download.")
+                    .with_detail(err.to_string())
+            })?
+            .bytes()
+            .await
+            .map_err(|err| {
+                CommandError::new("DOWNLOAD_FAILED", "yt-dlp download did not complete.")
+                    .with_detail(err.to_string())
+            })?;
+        let dest = bin_dir.join(file_name_for(Tool::YtDlp));
+        tokio::fs::write(&dest, &bytes).await.map_err(|err| {
+            CommandError::new("INSTALL_WRITE_FAILED", "Could not save yt-dlp.")
+                .with_detail(err.to_string())
+        })?;
+    }
+
+    if resolve(Tool::Ffmpeg, settings).is_none() || resolve(Tool::Ffprobe, settings).is_none() {
+        let bytes = http
+            .get(FFMPEG_WIN_URL)
+            .send()
+            .await
+            .map_err(|err| {
+                CommandError::new("DOWNLOAD_FAILED", "Could not download FFmpeg from GitHub.")
+                    .with_detail(err.to_string())
+            })?
+            .error_for_status()
+            .map_err(|err| {
+                CommandError::new("DOWNLOAD_FAILED", "GitHub rejected the FFmpeg download.")
+                    .with_detail(err.to_string())
+            })?
+            .bytes()
+            .await
+            .map_err(|err| {
+                CommandError::new("DOWNLOAD_FAILED", "FFmpeg download did not complete.")
+                    .with_detail(err.to_string())
+            })?;
+
+        let bin_dir_clone = bin_dir.clone();
+        tokio::task::spawn_blocking(move || -> CmdResult<()> {
+            let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|err| {
+                CommandError::new("EXTRACT_FAILED", "The FFmpeg archive could not be opened.")
+                    .with_detail(err.to_string())
+            })?;
+            for i in 0..archive.len() {
+                let mut entry = archive.by_index(i).map_err(|err| {
+                    CommandError::new("EXTRACT_FAILED", "Could not read FFmpeg archive entry.")
+                        .with_detail(err.to_string())
+                })?;
+                let name = entry.name().replace('\\', "/");
+                let file_name = name.rsplit('/').next().unwrap_or("");
+                if matches!(file_name, "ffmpeg.exe" | "ffprobe.exe" | "ffmpeg" | "ffprobe") {
+                    let out_path = bin_dir_clone.join(file_name);
+                    let mut out = std::fs::File::create(&out_path).map_err(|err| {
+                        CommandError::new("INSTALL_WRITE_FAILED", "Could not write FFmpeg binary.")
+                            .with_detail(err.to_string())
+                    })?;
+                    std::io::copy(&mut entry, &mut out).map_err(|err| {
+                        CommandError::new("INSTALL_WRITE_FAILED", "Could not extract FFmpeg binary.")
+                            .with_detail(err.to_string())
+                    })?;
+                }
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|err| {
+            CommandError::new("EXTRACT_FAILED", "FFmpeg extraction task failed.")
+                .with_detail(err.to_string())
+        })??;
+    }
+
+    Ok(check_dependencies(settings).await)
+}

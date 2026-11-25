@@ -215,6 +215,7 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
       settings = { ...(args?.settings as Settings) };
       return { ...settings } as T;
     case "check_dependencies":
+    case "install_dependencies":
       await sleep(350);
       return { ...DEPENDENCIES } as T;
     case "browser_profiles": {

@@ -229,7 +229,7 @@ a {
 }
 
 .dot-error {
-  background: var(--accent);
+  background: var(--danger);
 }
 
 .btn {
@@ -569,9 +569,9 @@ select.input {
 }
 
 .dep-error {
-  color: var(--accent);
-  border-color: rgba(238, 48, 47, 0.3);
-  background: var(--accent-soft);
+  color: var(--danger);
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.08);
 }
 
 .dep-warn {
@@ -2335,6 +2335,13 @@ select.input {
   color: var(--text-primary);
 }
 
+.dep-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
 .app-footer {
   display: flex;
   align-items: center;
@@ -2509,7 +2516,14 @@ select.input {
     justify-content: space-between;
   }
 
-  .app-footer {
+  .dep-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.app-footer {
     flex-wrap: wrap;
   }
 
@@ -4238,6 +4252,13 @@ html[data-theme="dark"] .deck-buffered {
 .clip-toolbar,
 .clips,
 .downloads,
+.dep-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
 .app-footer {
   animation: panelIn 0.36s cubic-bezier(0.2, 0.85, 0.25, 1) both;
   will-change: transform, opacity;
@@ -4266,6 +4287,13 @@ html[data-theme="dark"] .deck-buffered {
 
 .downloads {
   animation-delay: 230ms;
+}
+
+.dep-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
 }
 
 .app-footer {
@@ -4377,6 +4405,57 @@ html[data-theme="dark"] .deck-buffered {
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   box-shadow: none;
+  gap: 16px;
+}
+
+.topbar .brand {
+  flex: 0 0 auto;
+}
+
+.topbar-center {
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 440px;
+  width: auto;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.topbar-right {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.global-info {
+  width: auto;
+  max-width: 100%;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0 12px;
+}
+
+.global-info-success,
+.global-info-warning,
+.global-info-idle {
+  border-left-color: var(--border);
+}
+
+.global-info-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-sound.is-on {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .brand-name {
@@ -4673,6 +4752,13 @@ select,
 .global-info {
   border-radius: 999px;
   border-left-width: 1px;
+}
+
+.dep-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
 }
 
 .app-footer {

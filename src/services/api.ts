@@ -70,6 +70,7 @@ export const api = {
   getSettings: () => call<Settings>("get_settings"),
   updateSettings: (settings: Settings) => call<Settings>("update_settings", { settings }),
   checkDependencies: () => call<DependencyReport>("check_dependencies"),
+  installDependencies: () => call<DependencyReport>("install_dependencies"),
   testYouTubeAuth: (settings: Settings, url?: string) =>
     call<AuthTestResult>("test_youtube_auth", { settings, url: url ?? null }),
   browserProfiles: (browser: string) =>

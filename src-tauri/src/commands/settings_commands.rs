@@ -84,6 +84,14 @@ pub async fn check_dependencies(
     Ok(binaries::check_dependencies(&settings).await)
 }
 
+#[tauri::command]
+pub async fn install_dependencies(
+    state: State<'_, AppState>,
+) -> Result<DependencyReport, CommandError> {
+    let settings = lock(&state.settings).clone();
+    binaries::install_missing(&settings).await
+}
+
 /// Test YouTube auth using the supplied settings.
 #[tauri::command]
 pub async fn test_youtube_auth(

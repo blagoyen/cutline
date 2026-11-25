@@ -78,6 +78,7 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [installingTools, setInstallingTools] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const {
     items: toasts,
@@ -651,6 +652,25 @@ export default function App() {
 
   const handleUrlSubmit = useStableCallback(() => void handleLoadVideo());
 
+  const handleInstallTools = useStableCallback(async () => {
+    if (installingTools) return;
+    setInstallingTools(true);
+    toast("Downloading missing tools from official GitHub releases…", "info");
+    try {
+      const report = await api.installDependencies();
+      await refreshDependencies();
+      if (report.ready) {
+        toast("yt-dlp, FFmpeg, and FFprobe are ready.", "success");
+      } else {
+        toast("Tools downloaded, but some could not be verified. Check Settings.", "error");
+      }
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setInstallingTools(false);
+    }
+  });
+
   const handleOpenSource = useStableCallback(() => {
     void api.openUrl(video?.webpageUrl ?? "").catch((err) => toast(errorMessage(err), "error"));
   });
@@ -699,6 +719,8 @@ export default function App() {
         {dependencies && !dependencies.ready ? (
           <DependencyBanner
             dependencies={dependencies}
+            installing={installingTools}
+            onInstall={() => void handleInstallTools()}
             onOpenSettings={openSettings}
           />
         ) : null}

@@ -111,6 +111,7 @@ pub fn run() {
             commands::settings_commands::get_settings,
             commands::settings_commands::update_settings,
             commands::settings_commands::check_dependencies,
+            commands::settings_commands::install_dependencies,
             commands::settings_commands::test_youtube_auth,
             commands::settings_commands::browser_profiles,
             commands::settings_commands::check_ytdlp_update,
