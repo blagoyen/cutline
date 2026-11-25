@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import Hls from "hls.js";
+import type HlsType from "hls.js";
 import type { VideoSource } from "../types";
 
 interface YtPlayer {
@@ -266,7 +266,7 @@ export function useMediaPlayer(
       video.playbackRate = rateRef.current;
       hostRef.current.appendChild(video);
 
-      let hls: Hls | null = null;
+      let hls: HlsType | null = null;
       const isHls = /\.m3u8(\?|$)/i.test(url) || url.includes("m3u8");
 
       const markReady = () => {
@@ -308,26 +308,32 @@ export function useMediaPlayer(
         }
       }, 15000);
 
-      if (isHls && Hls.isSupported()) {
-        hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: false,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-        });
-        hls.on(Hls.Events.ERROR, (_evt, data) => {
-          if (data.fatal && !disposed) {
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              hls?.startLoad();
-            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-              hls?.recoverMediaError();
-            } else {
-              onError();
+      if (isHls) {
+        const { default: Hls } = await import("hls.js");
+        if (disposed) return;
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+          });
+          hls.on(Hls.Events.ERROR, (_evt, data) => {
+            if (data.fatal && !disposed) {
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                hls?.startLoad();
+              } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                hls?.recoverMediaError();
+              } else {
+                onError();
+              }
             }
-          }
-        });
-        hls.loadSource(url);
-        hls.attachMedia(video);
+          });
+          hls.loadSource(url);
+          hls.attachMedia(video);
+        } else {
+          video.src = url;
+        }
       } else {
         video.src = url;
       }

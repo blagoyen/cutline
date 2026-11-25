@@ -445,7 +445,7 @@ export const SettingsPanel = memo(function SettingsPanel({
 
           <section className="drawer-section">
             <div className="drawer-section-head">
-              <h3 className="drawer-section-title">YouTube Authentication</h3>
+              <h3 className="drawer-section-title">Browser Authentication</h3>
               <span className={`auth-status${authResult ? (authResult.ok ? " is-ok" : " is-error") : ""}`}>
                 <span className={`dot ${authResult ? (authResult.ok ? "dot-ok" : "dot-error") : ""}`} aria-hidden="true" />
                 {authResult ? (authResult.ok ? "Verified" : "Not working") : "Not tested"}

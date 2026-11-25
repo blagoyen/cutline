@@ -221,14 +221,17 @@ export default function App() {
       toast("That range is too short to cut.", "error");
       return;
     }
-    const clip: Clip = {
-      id: newId(),
-      name: `Clip ${String(clips.length + 1).padStart(2, "0")}`,
-      startMs: start,
-      endMs: end,
-    };
-    setClips((prev) => [...prev, clip]);
-    setActiveClipId(clip.id);
+    const id = newId();
+    setClips((prev) => [
+      ...prev,
+      {
+        id,
+        name: `Clip ${String(prev.length + 1).padStart(2, "0")}`,
+        startMs: start,
+        endMs: end,
+      },
+    ]);
+    setActiveClipId(id);
     setPendingIn(null);
     setPendingOut(null);
   });
@@ -242,14 +245,23 @@ export default function App() {
       toast("There is no room left for another cut.", "error");
       return;
     }
-    const clip: Clip = {
-      id: newId(),
-      name: `Clip ${String(clips.length + 1).padStart(2, "0")}`,
-      startMs: start,
-      endMs: end,
-    };
-    setClips((prev) => [...prev, clip]);
-    setActiveClipId(clip.id);
+    const id = newId();
+    setClips((prev) => {
+      const last = prev[prev.length - 1];
+      const nextStart = last ? Math.min(last.endMs, Math.max(0, durationMs - 100)) : 0;
+      const nextEnd = Math.min(nextStart + DEFAULT_CLIP_MS, durationMs);
+      if (nextEnd - nextStart < MIN_CLIP_MS) return prev;
+      return [
+        ...prev,
+        {
+          id,
+          name: `Clip ${String(prev.length + 1).padStart(2, "0")}`,
+          startMs: nextStart,
+          endMs: nextEnd,
+        },
+      ];
+    });
+    setActiveClipId(id);
   });
 
   const updateClip = useCallback((id: string, patch: Partial<Clip>) => {

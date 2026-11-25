@@ -4750,6 +4750,140 @@ select,
   border-radius: 8px;
 }
 
+.deck-add {
+  background: var(--cta-bg);
+  border-color: var(--cta-bg);
+  color: var(--cta-fg);
+  padding: 0 11px;
+  font-weight: 600;
+}
+
+.deck-add:hover:not(:disabled) {
+  background: var(--cta-bg-hover);
+  border-color: var(--cta-bg-hover);
+}
+
+.deck-add kbd {
+  background: color-mix(in srgb, var(--cta-fg) 16%, transparent);
+  border-color: color-mix(in srgb, var(--cta-fg) 26%, transparent);
+  color: var(--cta-fg);
+}
+
+.deck-preset {
+  border-radius: 999px;
+  padding: 0 10px;
+}
+
+.deck-preset-strong {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.deck-preset-strong:hover:not(:disabled) {
+  border-color: var(--text-primary);
+  background: var(--muted);
+}
+
+.deck-chip {
+  border-radius: 8px;
+}
+
+.deck-chip.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Pixel-aligned Cuts table */
+.clip-grid {
+  grid-template-columns: 36px minmax(160px, 1fr) 176px 176px 68px 216px;
+  gap: 10px;
+}
+
+.clip-head {
+  padding: 0 10px 9px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.clip-row {
+  padding: 12px 10px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+.clip-row:hover {
+  background: var(--surface-2);
+}
+
+.clip-row.is-active {
+  background: var(--surface-2);
+}
+
+.clip-index {
+  border-radius: 6px;
+}
+
+.badge-overlap {
+  background: rgba(217, 119, 6, 0.14);
+  color: var(--warning);
+}
+
+.badge-invalid {
+  background: rgba(220, 38, 38, 0.14);
+  color: var(--danger);
+}
+
+/* Timeline polish — short cuts on long VODs stay grab-friendly */
+.track {
+  border-radius: 8px;
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.selection {
+  min-width: 24px;
+  border-radius: 6px;
+}
+
+.playhead-cap {
+  border-radius: 999px;
+}
+
+/* Settings drawer & DownloadManager polish */
+.drawer-backdrop {
+  backdrop-filter: blur(4px);
+}
+
+.drawer {
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.16);
+}
+
+.switch.is-on {
+  background: var(--cta-bg);
+  border-color: var(--cta-bg);
+}
+
+.switch.is-on .switch-thumb {
+  background: var(--cta-fg);
+}
+
+.dl-row {
+  padding: 14px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.progress {
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  border-radius: 999px;
+}
+
 .global-info {
   border-radius: 999px;
   border-left-width: 1px;
