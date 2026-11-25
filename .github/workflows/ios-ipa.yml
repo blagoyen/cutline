@@ -37,10 +37,17 @@ jobs:
       - name: Initialize Tauri iOS project
         run: npx tauri ios init --ci
 
-      - name: Inject Cutline AVFoundation Swift bridge & Sideloadly Info.plist keys
+      - name: Build Rust staticlib for aarch64-apple-ios
         run: |
           set -euo pipefail
-          # Locate the generated Swift/ObjC source directory dynamically
+          cargo build --manifest-path src-tauri/Cargo.toml --release --target aarch64-apple-ios --lib
+          mkdir -p src-tauri/gen/apple/Externals/arm64/release
+          cp src-tauri/target/aarch64-apple-ios/release/libcutline_lib.a src-tauri/gen/apple/Externals/arm64/release/libapp.a
+          ls -lh src-tauri/gen/apple/Externals/arm64/release/libapp.a
+
+      - name: Inject Cutline AVFoundation Swift bridge, Info.plist keys & patch project.yml
+        run: |
+          set -euo pipefail
           SRC_DIR=$(find src-tauri/gen/apple/Sources -mindepth 1 -maxdepth 1 -type d | head -n 1)
           echo "Injecting CutlineMedia.swift into: $SRC_DIR"
           cp "src-tauri/ios-plugin/CutlineMedia.swift" "$SRC_DIR/CutlineMedia.swift"
@@ -61,6 +68,18 @@ jobs:
             /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" "$PLIST" || \
             /usr/libexec/PlistBuddy -c "Set :NSAppTransportSecurity:NSAllowsArbitraryLoads true" "$PLIST"
           fi
+
+          # Remove Tauri's preBuildScripts (which require a live `tauri ios build` server)
+          # since we already compiled libapp.a directly above.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("src-tauri/gen/apple/project.yml")
+          text = p.read_text()
+          text = re.sub(r"(?m)^    preBuildScripts:\n(?:      .*\n)*", "", text)
+          p.write_text(text)
+          print("Patched project.yml successfully")
+          PY
 
           (cd src-tauri/gen/apple && xcodegen generate)
 
