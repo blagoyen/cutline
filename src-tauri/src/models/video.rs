@@ -1,5 +1,18 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum VideoSource {
+    Youtube,
+    Twitch,
+}
+
+impl Default for VideoSource {
+    fn default() -> Self {
+        VideoSource::Youtube
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FormatInfo {
@@ -14,7 +27,7 @@ pub struct FormatInfo {
     pub note: Option<String>,
 }
 
-/// YouTube chapter metadata, used for jumps and chapter cuts.
+/// Video chapter metadata, used for jumps and chapter cuts.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Chapter {
@@ -27,6 +40,8 @@ pub struct Chapter {
 #[serde(rename_all = "camelCase")]
 pub struct VideoInfo {
     pub id: String,
+    #[serde(default)]
+    pub source: VideoSource,
     pub title: String,
     pub duration_ms: u64,
     pub thumbnail: String,

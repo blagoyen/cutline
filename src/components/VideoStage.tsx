@@ -22,8 +22,8 @@ import {
   VolumeX,
 } from "lucide-react";
 import type { Chapter, Clip, VideoInfo } from "../types";
-import type { PlayerState } from "../hooks/useYouTubePlayer";
-import { PLAYBACK_RATES } from "../hooks/useYouTubePlayer";
+import type { PlayerState } from "../hooks/useMediaPlayer";
+import { PLAYBACK_RATES } from "../hooks/useMediaPlayer";
 import { formatCount, formatShortTimecode, formatTimecode } from "../utils/format";
 
 type Player = PlayerState & {
@@ -227,11 +227,25 @@ export const VideoStage = memo(function VideoStage({
 
   const selectedChapter = chapters[chapterIndex] ?? null;
 
+  const isTwitch = video?.source === "twitch";
+  const sourceName = isTwitch ? "Twitch" : "YouTube";
+  const sourceBadge = video
+    ? isTwitch
+      ? /^\d+$/.test(video.id)
+        ? `Twitch VOD · ${video.id}`
+        : `Twitch Clip · ${video.id}`
+      : `YouTube · ${video.id}`
+    : "Preview";
+
   return (
     <section className="stage" aria-label="Video preview">
       <div className="video-head">
         <div className="video-head-text">
-          <span className="eyebrow eyebrow-sm">{video ? `Video · ${video.id}` : "Preview"}</span>
+          <span
+            className={`eyebrow eyebrow-sm${video ? ` eyebrow-source-${video.source}` : ""}`}
+          >
+            {sourceBadge}
+          </span>
           <h2 className="video-title" title={video?.title}>
             {video ? video.title : "No video loaded"}
           </h2>
@@ -246,7 +260,7 @@ export const VideoStage = memo(function VideoStage({
             </div>
           ) : (
             <div className="video-meta">
-              <span>Paste a link above and press Load video.</span>
+              <span>Paste a YouTube or Twitch VOD link above and press Import.</span>
             </div>
           )}
         </div>
@@ -256,9 +270,9 @@ export const VideoStage = memo(function VideoStage({
             type="button"
             className="btn btn-quiet video-source"
             onClick={onOpenSource}
-            title="Open the source video on YouTube"
+            title={`Open the source video on ${sourceName}`}
           >
-            Open on YouTube <ExternalLink size={12} strokeWidth={2} />
+            Open on {sourceName} <ExternalLink size={12} strokeWidth={2} />
           </button>
         ) : null}
       </div>
@@ -290,7 +304,7 @@ export const VideoStage = memo(function VideoStage({
                 <p className="frame-fallback-text">{player.error}</p>
                 <div className="frame-fallback-actions">
                   <button type="button" className="btn btn-primary btn-sm" onClick={onOpenSource}>
-                    Watch on YouTube
+                    Watch on {sourceName}
                   </button>
                   <span className="frame-fallback-note">Clip downloads still work.</span>
                 </div>
@@ -423,9 +437,13 @@ export const VideoStage = memo(function VideoStage({
                   <select
                     className="input input-compact"
                     value={player.playbackRate}
-                    disabled={!player.ready}
+                    disabled={!player.ready || !player.supportsPlaybackRate}
                     aria-label="Playback speed"
-                    title="Playback speed"
+                    title={
+                      player.supportsPlaybackRate
+                        ? "Playback speed"
+                        : "Playback speed is only available for YouTube previews"
+                    }
                     onChange={(event) => player.setPlaybackRate(Number(event.target.value))}
                   >
                     {PLAYBACK_RATES.map((rate) => (

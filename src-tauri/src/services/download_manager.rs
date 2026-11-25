@@ -194,8 +194,8 @@ fn build_args(
         args.push(dir.to_string_lossy().into_owned());
     }
 
-    // Add YouTube-specific yt-dlp args.
-    yt_dlp::auth_args(settings, &mut args);
+    // Add source-appropriate yt-dlp args (cookies for YouTube & Twitch; JS runtime/PO Token for YouTube).
+    yt_dlp::auth_args_for_url(settings, &task.url, &mut args);
 
     if task.format == "mp3" {
         args.extend([

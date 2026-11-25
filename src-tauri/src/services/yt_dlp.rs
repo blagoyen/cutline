@@ -4,7 +4,7 @@ use std::time::Duration;
 use url::Url;
 
 use crate::error::CommandError;
-use crate::models::video::VideoInfo;
+use crate::models::video::{VideoInfo, VideoSource};
 use crate::models::Settings;
 use crate::services::{binaries, metadata, process_manager};
 use crate::services::binaries::Tool;
@@ -18,28 +18,53 @@ const YOUTUBE_HOSTS: [&str; 6] = [
     "www.youtube-nocookie.com",
 ];
 
+const TWITCH_HOSTS: [&str; 3] = ["twitch.tv", "m.twitch.tv", "clips.twitch.tv"];
+
 fn invalid_url() -> CommandError {
     CommandError::new(
         "INVALID_URL",
-        "That does not look like a YouTube link. Paste a link such as https://www.youtube.com/watch?v=...",
+        "Paste a supported YouTube video link or Twitch VOD / clip link.",
     )
 }
 
-fn looks_like_id(value: &str) -> bool {
+fn looks_like_youtube_id(value: &str) -> bool {
     value.len() == 11
         && value
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-/// Validate a YouTube link and return the canonical watch URL plus video id.
+fn looks_like_twitch_vod_id(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 20 && value.chars().all(|c| c.is_ascii_digit())
+}
+
+fn looks_like_twitch_clip_slug(value: &str) -> bool {
+    value.len() >= 6
+        && value.len() <= 128
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+pub fn detect_source(url: &str) -> VideoSource {
+    if url.to_ascii_lowercase().contains("twitch.tv") {
+        VideoSource::Twitch
+    } else {
+        VideoSource::Youtube
+    }
+}
+
+/// Validate a YouTube or Twitch VOD/clip link and return the canonical URL plus video id.
 pub fn canonicalize(raw: &str) -> Result<(String, String), CommandError> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
-        return Err(CommandError::new("EMPTY_URL", "Paste a YouTube link first."));
+        return Err(CommandError::new(
+            "EMPTY_URL",
+            "Paste a YouTube or Twitch link first.",
+        ));
     }
 
-    if looks_like_id(trimmed) {
+    if looks_like_youtube_id(trimmed) {
         return Ok((
             format!("https://www.youtube.com/watch?v={}", trimmed),
             trimmed.to_string(),
@@ -68,17 +93,80 @@ pub fn canonicalize(raw: &str) -> Result<(String, String), CommandError> {
         .unwrap_or_default()
         .trim_start_matches("www.")
         .to_lowercase();
+
+    let segments: Vec<&str> = parsed
+        .path_segments()
+        .map(|s| s.filter(|part| !part.is_empty()).collect())
+        .unwrap_or_default();
+
+    if TWITCH_HOSTS.contains(&host.as_str()) {
+        if host == "clips.twitch.tv" {
+            let slug = segments
+                .first()
+                .copied()
+                .filter(|value| looks_like_twitch_clip_slug(value))
+                .ok_or_else(invalid_url)?;
+            return Ok((
+                format!("https://clips.twitch.tv/{}", slug),
+                slug.to_string(),
+            ));
+        }
+
+        // twitch.tv/videos/<id> or m.twitch.tv/videos/<id>
+        if matches!(segments.first().copied(), Some("videos") | Some("video")) {
+            let id = segments
+                .get(1)
+                .copied()
+                .map(|s| s.strip_prefix('v').unwrap_or(s))
+                .filter(|value| looks_like_twitch_vod_id(value))
+                .ok_or_else(invalid_url)?;
+            return Ok((
+                format!("https://www.twitch.tv/videos/{}", id),
+                id.to_string(),
+            ));
+        }
+
+        // twitch.tv/<channel>/video/<id> or twitch.tv/<channel>/videos/<id>
+        if matches!(segments.get(1).copied(), Some("video") | Some("videos")) {
+            if let Some(id) = segments
+                .get(2)
+                .copied()
+                .map(|s| s.strip_prefix('v').unwrap_or(s))
+                .filter(|value| looks_like_twitch_vod_id(value))
+            {
+                return Ok((
+                    format!("https://www.twitch.tv/videos/{}", id),
+                    id.to_string(),
+                ));
+            }
+        }
+
+        // twitch.tv/<channel>/clip/<slug>
+        if segments.get(1).copied() == Some("clip") {
+            let channel = segments.first().copied().ok_or_else(invalid_url)?;
+            let slug = segments
+                .get(2)
+                .copied()
+                .filter(|value| looks_like_twitch_clip_slug(value))
+                .ok_or_else(invalid_url)?;
+            return Ok((
+                format!("https://www.twitch.tv/{}/clip/{}", channel, slug),
+                slug.to_string(),
+            ));
+        }
+
+        return Err(CommandError::new(
+            "INVALID_URL",
+            "Paste a Twitch VOD link (twitch.tv/videos/...) or Twitch clip link. Live channels cannot be clipped.",
+        ));
+    }
+
     if !YOUTUBE_HOSTS.contains(&host.as_str())
         && !YOUTUBE_HOSTS.contains(&format!("www.{}", host).as_str())
         && host != "www.youtu.be"
     {
         return Err(invalid_url());
     }
-
-    let segments: Vec<&str> = parsed
-        .path_segments()
-        .map(|s| s.filter(|part| !part.is_empty()).collect())
-        .unwrap_or_default();
 
     let id = if host == "youtu.be" {
         segments.first().map(|s| s.to_string())
@@ -96,7 +184,9 @@ pub fn canonicalize(raw: &str) -> Result<(String, String), CommandError> {
         }
     };
 
-    let id = id.filter(|value| looks_like_id(value)).ok_or_else(invalid_url)?;
+    let id = id
+        .filter(|value| looks_like_youtube_id(value))
+        .ok_or_else(invalid_url)?;
     Ok((
         format!("https://www.youtube.com/watch?v={}", id),
         id,
@@ -122,6 +212,27 @@ mod tests {
             assert_eq!(id, expected, "{input}");
             assert_eq!(url, format!("https://www.youtube.com/watch?v={expected}"));
         }
+    }
+
+    #[test]
+    fn accepts_twitch_vod_and_clip_links() {
+        let (url, id) = canonicalize("https://www.twitch.tv/videos/2145678901?t=01h02m03s").unwrap();
+        assert_eq!(url, "https://www.twitch.tv/videos/2145678901");
+        assert_eq!(id, "2145678901");
+
+        let (url, id) = canonicalize("m.twitch.tv/videos/2145678901").unwrap();
+        assert_eq!(url, "https://www.twitch.tv/videos/2145678901");
+        assert_eq!(id, "2145678901");
+
+        let (url, id) = canonicalize("https://www.twitch.tv/somechannel/video/2145678901").unwrap();
+        assert_eq!(url, "https://www.twitch.tv/videos/2145678901");
+        assert_eq!(id, "2145678901");
+
+        let (url, id) = canonicalize("https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage").unwrap();
+        assert_eq!(url, "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage");
+        assert_eq!(id, "AwkwardHelplessSalamanderSwiftRage");
+
+        assert!(canonicalize("https://www.twitch.tv/somechannel").is_err());
     }
 
     #[test]
@@ -246,25 +357,36 @@ pub fn cookie_source(settings: &Settings) -> Option<String> {
     Some(source)
 }
 
+/// Add yt-dlp args for a specific video source (YouTube gets JS runtime + PO Token;
+/// both YouTube and Twitch use browser cookies when authentication is enabled).
+pub fn auth_args_for_url(settings: &Settings, url: &str, args: &mut Vec<String>) {
+    let source = detect_source(url);
+    if source == VideoSource::Youtube {
+        args.push("--js-runtimes".into());
+        args.push("node".into());
+    }
+    if let Some(source_cookies) = cookie_source(settings) {
+        args.push("--cookies-from-browser".into());
+        args.push(source_cookies);
+    }
+    if source == VideoSource::Youtube {
+        if let Some(dir) = settings
+            .pot_plugin_dir
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty() && Path::new(value).is_dir())
+        {
+            args.push("--plugin-dirs".into());
+            args.push("default".into());
+            args.push("--plugin-dirs".into());
+            args.push(dir.to_string());
+        }
+    }
+}
+
 /// Add YouTube-specific yt-dlp args: JS runtime, auth, and PO Token plugin.
 pub fn auth_args(settings: &Settings, args: &mut Vec<String>) {
-    args.push("--js-runtimes".into());
-    args.push("node".into());
-    if let Some(source) = cookie_source(settings) {
-        args.push("--cookies-from-browser".into());
-        args.push(source);
-    }
-    if let Some(dir) = settings
-        .pot_plugin_dir
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty() && Path::new(value).is_dir())
-    {
-        args.push("--plugin-dirs".into());
-        args.push("default".into());
-        args.push("--plugin-dirs".into());
-        args.push(dir.to_string());
-    }
+    auth_args_for_url(settings, "https://www.youtube.com/watch?v=jNQXAC9IVRw", args);
 }
 
 /// Prefer MP4/M4A streams so the merged result is broadly playable.
@@ -422,6 +544,14 @@ pub fn map_error(stderr: &str, exit_context: &str, auth_enabled: bool) -> Comman
         }
     } else if lower.contains("private video") {
         ("PRIVATE_VIDEO", "This video is private and cannot be downloaded.")
+    } else if lower.contains("subscriber-only")
+        || lower.contains("subscribers-only")
+        || lower.contains("sub-only")
+    {
+        (
+            "SUBSCRIBER_ONLY",
+            "This Twitch VOD is subscriber-only. Enable browser authentication in Settings with a subscribed Twitch account.",
+        )
     } else if lower.contains("members-only") || lower.contains("join this channel") {
         (
             "MEMBERS_ONLY",
@@ -550,7 +680,7 @@ pub async fn fetch_metadata(
             args.push(dir.to_string_lossy().into_owned());
         }
     }
-    auth_args(settings, &mut args);
+    auth_args_for_url(settings, url, &mut args);
     args.push("--".into());
     args.push(url.to_string());
 

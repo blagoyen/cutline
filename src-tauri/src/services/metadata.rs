@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use crate::error::CommandError;
-use crate::models::video::{Chapter, FormatInfo, VideoInfo};
+use crate::models::video::{Chapter, FormatInfo, VideoInfo, VideoSource};
 
 fn as_str(value: &Value, key: &str) -> Option<String> {
     value
@@ -168,12 +168,33 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
     let webpage_url = as_str(target, "webpage_url")
         .unwrap_or_else(|| format!("https://www.youtube.com/watch?v={}", id));
 
+    let extractor = as_str(target, "extractor_key")
+        .or_else(|| as_str(target, "extractor"))
+        .unwrap_or_default()
+        .to_lowercase();
+    let source = if extractor.contains("twitch") || webpage_url.to_lowercase().contains("twitch.tv") {
+        VideoSource::Twitch
+    } else {
+        VideoSource::Youtube
+    };
+
+    // Strip leading "v" from Twitch VOD ids returned by yt-dlp (e.g. "v1234567890" -> "1234567890").
+    let clean_id = if source == VideoSource::Twitch {
+        id.strip_prefix('v')
+            .filter(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()))
+            .map(str::to_string)
+            .unwrap_or(id)
+    } else {
+        id
+    };
+
     let title = as_str(target, "title")
         .or_else(|| as_str(target, "fulltitle"))
         .unwrap_or_else(|| "Untitled video".to_string());
 
     Ok(VideoInfo {
-        id,
+        id: clean_id,
+        source,
         title,
         duration_ms,
         thumbnail: thumbnail_of(target).unwrap_or_default(),

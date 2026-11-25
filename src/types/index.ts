@@ -26,8 +26,11 @@ export interface Chapter {
   title: string;
 }
 
+export type VideoSource = "youtube" | "twitch";
+
 export interface VideoInfo {
   id: string;
+  source: VideoSource;
   title: string;
   durationMs: number;
   thumbnail: string;

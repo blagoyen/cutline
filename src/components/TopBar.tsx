@@ -101,9 +101,9 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
     <header className="topbar" data-tauri-drag-region>
       <div className="brand" data-tauri-drag-region>
         <span className="brand-mark" aria-hidden="true" data-tauri-drag-region />
-        <span className="brand-name" data-tauri-drag-region>YT CUTTER</span>
+        <span className="brand-name" data-tauri-drag-region>CUTLINE</span>
         <span className="brand-sep" aria-hidden="true" data-tauri-drag-region />
-        <span className="brand-tag" data-tauri-drag-region>Local clipper</span>
+        <span className="brand-tag" data-tauri-drag-region>YouTube · Twitch</span>
       </div>
 
       <div className="topbar-center">

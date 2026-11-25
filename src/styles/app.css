@@ -9,25 +9,29 @@
 }
 
 :root {
-  --background: #f7f5f0;
-  --surface: #faf8f5;
-  --surface-2: #f7f5f0;
-  --text-primary: #101010;
-  --text-secondary: #55514d;
-  --accent: #e62e2d;
-  --accent-ink: #c42221;
-  --accent-soft: rgba(230, 46, 45, 0.08);
-  --border: #d8d4cc;
-  --border-soft: #e9e5dd;
-  --border-strong: #b9b4aa;
-  --muted: #edeae5;
-  --label: #8b857d;
-  --success: #2f6f4e;
-  --warning: #a15c1e;
-  --danger: #c0271f;
-  --shadow-sm: 0 1px 0 rgba(16, 16, 16, 0.02), 0 1px 2px rgba(16, 16, 16, 0.04);
-  --radius: 3px;
-  --radius-sm: 2px;
+  --background: #f4f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8f9fc;
+  --text-primary: #11131a;
+  --text-secondary: #535869;
+  --accent: #4f46e5;
+  --accent-ink: #3730a3;
+  --accent-soft: rgba(79, 70, 229, 0.1);
+  --source-youtube: #e62e2d;
+  --source-youtube-soft: rgba(230, 46, 45, 0.1);
+  --source-twitch: #9146ff;
+  --source-twitch-soft: rgba(145, 70, 255, 0.12);
+  --border: #dfe3ec;
+  --border-soft: #eceff5;
+  --border-strong: #c5cbd9;
+  --muted: #eef0f6;
+  --label: #7a8194;
+  --success: #16805a;
+  --warning: #b46918;
+  --danger: #d12c2c;
+  --shadow-sm: 0 1px 2px rgba(17, 19, 26, 0.04), 0 4px 12px rgba(17, 19, 26, 0.03);
+  --radius: 8px;
+  --radius-sm: 6px;
   --font-sans: "InterVariable", "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui,
     -apple-system, sans-serif;
   --font-mono: "Cascadia Mono", "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono",
@@ -36,24 +40,28 @@
 }
 
 html[data-theme="dark"] {
-  --background: #000000;
-  --surface: #000000;
-  --surface-2: #080808;
-  --text-primary: #f4f1ec;
-  --text-secondary: #aca69c;
-  --accent: #f23837;
-  --accent-ink: #ff4d4c;
-  --accent-soft: rgba(242, 56, 55, 0.12);
-  --border: #2a2a2a;
-  --border-soft: #1c1c1c;
-  --border-strong: #3d3d3d;
-  --muted: #121212;
-  --label: #8c857b;
-  --success: #63b189;
-  --warning: #d6a05c;
-  --danger: #f0716a;
-  --frame-dark: #000000;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --background: #0b0d13;
+  --surface: #121620;
+  --surface-2: #171c28;
+  --text-primary: #f2f4f8;
+  --text-secondary: #9aa2b4;
+  --accent: #6366f1;
+  --accent-ink: #818cf8;
+  --accent-soft: rgba(99, 102, 241, 0.16);
+  --source-youtube: #ff4d4c;
+  --source-youtube-soft: rgba(255, 77, 76, 0.14);
+  --source-twitch: #a970ff;
+  --source-twitch-soft: rgba(169, 112, 255, 0.16);
+  --border: #252b3b;
+  --border-soft: #1b202e;
+  --border-strong: #363f56;
+  --muted: #1b202e;
+  --label: #7e879c;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --frame-dark: #07090e;
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }
 
@@ -4323,3 +4331,238 @@ html[data-theme="dark"] .deck-buffered {
 .brand:hover .brand-mark::after {
   transform: rotate(12deg) scaleX(1.15);
 }
+
+/* ============================================================================
+   Cutline 2.0 — Platform-Agnostic Broadcast Studio Redesign (YouTube & Twitch)
+   ============================================================================ */
+
+::selection {
+  background: var(--accent-soft);
+}
+
+:root {
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+button,
+input,
+select,
+.btn,
+.btn-chip,
+.icon-btn,
+.merge-box,
+.summary-card,
+.stage,
+.timeline,
+.clip-toolbar,
+.clips,
+.downloads,
+.urlbar,
+.dep-pill,
+.global-info {
+  border-radius: var(--radius-sm);
+}
+
+.summary-card,
+.stage,
+.timeline,
+.clip-toolbar,
+.clips,
+.downloads,
+.player-frame {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border-soft);
+}
+
+.brand-mark {
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  border-radius: 5px;
+  box-shadow: 0 2px 8px var(--accent-soft);
+}
+
+.brand-name {
+  letter-spacing: 0.14em;
+  font-weight: 800;
+}
+
+/* Source badges in HeroPanel */
+.source-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.source-pill-youtube svg {
+  color: var(--source-youtube);
+}
+
+.source-pill-twitch svg {
+  color: var(--source-twitch);
+}
+
+.source-pill-youtube.is-active {
+  border-color: var(--source-youtube);
+  background: var(--source-youtube-soft);
+  color: var(--text-primary);
+}
+
+.source-pill-twitch.is-active {
+  border-color: var(--source-twitch);
+  background: var(--source-twitch-soft);
+  color: var(--text-primary);
+}
+
+/* UrlBar live source detection */
+.urlbar {
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.urlbar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.urlbar-youtube:focus-within {
+  border-color: var(--source-youtube);
+  box-shadow: 0 0 0 3px var(--source-youtube-soft);
+}
+
+.urlbar-twitch:focus-within {
+  border-color: var(--source-twitch);
+  box-shadow: 0 0 0 3px var(--source-twitch-soft);
+}
+
+.urlbar-youtube .urlbar-icon {
+  color: var(--source-youtube);
+}
+
+.urlbar-twitch .urlbar-icon {
+  color: var(--source-twitch);
+}
+
+.urlbar-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex: none;
+  margin-right: 6px;
+}
+
+.deck-speed select {
+  width: auto;
+  min-width: 56px;
+  padding-right: 22px;
+}
+
+.urlbar-badge-youtube {
+  background: var(--source-youtube-soft);
+  color: var(--source-youtube);
+}
+
+.urlbar-badge-twitch {
+  background: var(--source-twitch-soft);
+  color: var(--source-twitch);
+}
+
+/* VideoStage source eyebrow accents */
+.eyebrow-source-youtube {
+  color: var(--source-youtube);
+}
+
+.eyebrow-source-twitch {
+  color: var(--source-twitch);
+}
+
+/* Subtle source-aware studio accent when a Twitch VOD is loaded */
+.app-shell[data-source="twitch"] .deck-play,
+.app-shell[data-source="twitch"] .deck-playhead,
+.app-shell[data-source="twitch"] .playhead,
+.app-shell[data-source="twitch"] .playhead-cap {
+  background: var(--source-twitch);
+}
+
+.app-shell[data-source="twitch"] .deck-play.is-playing::after {
+  border-color: var(--source-twitch);
+}
+
+.app-shell[data-source="twitch"] .selection.is-active {
+  border-color: var(--source-twitch);
+  background: var(--source-twitch-soft);
+}
+
+.app-shell[data-source="youtube"] .deck-play,
+.app-shell[data-source="youtube"] .deck-playhead,
+.app-shell[data-source="youtube"] .playhead,
+.app-shell[data-source="youtube"] .playhead-cap {
+  background: var(--source-youtube);
+}
+
+.app-shell[data-source="youtube"] .deck-play.is-playing::after {
+  border-color: var(--source-youtube);
+}
+
+/* Studio buttons & transport polish */
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+
+.deck-play {
+  border-radius: 6px;
+}
+
+.deck-add {
+  border-radius: 6px;
+}
+
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.global-info {
+  border-radius: 999px;
+  border-left-width: 1px;
+}
+

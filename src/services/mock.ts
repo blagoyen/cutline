@@ -11,6 +11,7 @@ import type {
 
 const VIDEO: VideoInfo = {
   id: "aqz-KE-bpKQ",
+  source: "youtube",
   title: "Big Buck Bunny — Blender Open Movie",
   durationMs: 634_000,
   thumbnail: "https://i.ytimg.com/vi/aqz-KE-bpKQ/maxresdefault.jpg",
@@ -186,6 +187,22 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
           code: "VIDEO_UNAVAILABLE",
           message: "This video is unavailable. It may be private, removed, or region locked.",
         } satisfies CommandError;
+      }
+      if (url.toLowerCase().includes("twitch.tv")) {
+        const match = url.match(/videos\/(\d+)/i);
+        const id = match?.[1] ?? "2145678901";
+        return {
+          ...VIDEO,
+          id,
+          source: "twitch",
+          title: "Late Night Ranked Session — Twitch VOD",
+          uploader: "TwitchCreator",
+          webpageUrl: `https://www.twitch.tv/videos/${id}`,
+          durationMs: 7_200_000,
+          maxHeight: 1080,
+          heights: [1080, 720, 480, 360],
+          chapters: [],
+        } as T;
       }
       return { ...VIDEO } as T;
     }

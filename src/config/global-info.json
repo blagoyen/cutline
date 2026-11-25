@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "label": "NOTICE",
-  "message": "YT Cutter 1.9.0 | Officialy out!",
+  "label": "RELEASE",
+  "message": "Cutline 2.0.0 — Redesigned studio UI + Twitch VOD support.",
   "tone": "success",
-  "updatedAt": "2026-11-24"
+  "updatedAt": "2026-11-25"
 }

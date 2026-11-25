@@ -1,8 +1,8 @@
 [package]
 name = "yt-cutter"
-version = "1.9.0"
-description = "Cut YouTube videos into clips, locally."
-authors = ["YT Cutter"]
+version = "2.0.0"
+description = "Cut YouTube videos and Twitch VODs into clips, locally."
+authors = ["Cutline"]
 edition = "2021"
 rust-version = "1.77"
 

@@ -453,15 +453,17 @@ export const SettingsPanel = memo(function SettingsPanel({
             </div>
 
             <p className="field-hint field-hint-block">
-              Use your existing browser session to access videos that require YouTube sign-in.
-              Cookies are read only by yt-dlp, only while this is enabled — they are never uploaded,
-              displayed, or saved by YT Cutter.
+              Use your existing browser session for videos that require sign-in (YouTube bot checks,
+              age-restricted videos, or subscriber-only Twitch VODs). Cookies are read only by
+              yt-dlp while enabled — never uploaded, displayed, or saved by Cutline.
             </p>
 
             <div className="field field-inline">
               <div>
                 <span className="field-label">Use browser cookies</span>
-                <p className="field-hint">Off by default. Turn on only if YouTube asks you to sign in.</p>
+                <p className="field-hint">
+                  Off by default. Turn on for sign-in gated YouTube videos or sub-only Twitch VODs.
+                </p>
               </div>
               <button
                 type="button"
@@ -535,9 +537,9 @@ export const SettingsPanel = memo(function SettingsPanel({
                     spellCheck={false}
                   />
                   <p className="field-hint">
-                    Some videos need a Proof of Origin Token. YT Cutter can install the official
-                    provider for you, or you can point to an existing folder below. Requires Node.js
-                    22 or newer. No tokens are stored in YT Cutter.
+                    Some YouTube videos need a Proof of Origin Token. Cutline can install the
+                    official provider for you, or you can point to an existing folder below.
+                    Requires Node.js 22 or newer. No tokens are stored in Cutline.
                   </p>
                   <div className="path-row">
                     <input

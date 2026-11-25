@@ -3,7 +3,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useDownloads } from "./hooks/useDownloads";
 import { useNotifications } from "./hooks/useNotifications";
 import { useStableCallback } from "./hooks/useStableCallback";
-import { useYouTubePlayer, type LoopRange } from "./hooks/useYouTubePlayer";
+import { useMediaPlayer, type LoopRange } from "./hooks/useMediaPlayer";
 import { api, errorMessage } from "./services/api";
 import type { Chapter, Clip, DownloadRequest, DownloadSection, Settings, VideoInfo } from "./types";
 import { applyNamingTemplate, NAMING_TEMPLATES } from "./utils/format";
@@ -87,7 +87,7 @@ export default function App() {
 
   const hostRef = useRef<HTMLDivElement>(null);
   const loopRef = useRef<LoopRange | null>(null);
-  const player = useYouTubePlayer(hostRef, video?.id ?? null, loopRef);
+  const player = useMediaPlayer(hostRef, video?.id ?? null, video?.source ?? "youtube", loopRef);
   const { seekMs, skipMs, play, toggle: togglePlayback } = player;
 
   const durationMs = player.durationMs || video?.durationMs || 0;
@@ -653,7 +653,7 @@ export default function App() {
       <div className="boot">
         <span className="brand-mark" aria-hidden="true" />
         <span className="boot-text">
-          {settingsError ?? (settingsLoading ? "Preparing YT Cutter…" : "Settings unavailable")}
+          {settingsError ?? (settingsLoading ? "Preparing Cutline…" : "Settings unavailable")}
         </span>
       </div>
     );
@@ -662,7 +662,7 @@ export default function App() {
   const activeCount = activeDownloads.length;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-source={video?.source ?? "none"}>
       <TopBar
         dependencies={dependencies}
         onOpenSettings={openSettings}
@@ -692,6 +692,7 @@ export default function App() {
             totalDurationMs={totalDurationMs}
             quality={quality}
             format={format}
+            activeSource={video?.source ?? null}
           />
 
           <div className="studio">
@@ -789,9 +790,9 @@ export default function App() {
         </div>
 
         <footer className="app-footer">
-          <span className="footer-item">YT Cutter{version ? ` v${version}` : ""}</span>
+          <span className="footer-item">Cutline{version ? ` v${version}` : ""}</span>
           <span className="footer-sep" aria-hidden="true" />
-          <span className="footer-item">Runs entirely on your computer</span>
+          <span className="footer-item">YouTube &amp; Twitch · 100% local</span>
           <span className="footer-item footer-path" title={settings.outputDir}>
             {settings.outputDir}
           </span>

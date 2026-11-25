@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { Clapperboard, Clock3 } from "lucide-react";
+import { Clapperboard, Clock3, PlaySquare, Tv } from "lucide-react";
+import type { VideoSource } from "../types";
 import { formatDuration, qualityLabel } from "../utils/format";
 
 interface HeroPanelProps {
@@ -7,29 +8,47 @@ interface HeroPanelProps {
   totalDurationMs: number;
   quality: string;
   format: string;
+  activeSource: VideoSource | null;
 }
 
 const STEPS = [
-  { index: "01", text: "Paste a YouTube link." },
-  { index: "02", text: "Mark in / out points and add multiple cuts." },
-  { index: "03", text: "Choose quality and export from the bar below." },
+  { index: "01", text: "Paste a YouTube video or Twitch VOD link." },
+  { index: "02", text: "Mark in / out points and stack multiple cuts." },
+  { index: "03", text: "Pick quality and export straight to your drive." },
 ];
 
-export const HeroPanel = memo(function HeroPanel({ clipCount, totalDurationMs, quality, format }: HeroPanelProps) {
+export const HeroPanel = memo(function HeroPanel({
+  clipCount,
+  totalDurationMs,
+  quality,
+  format,
+  activeSource,
+}: HeroPanelProps) {
   return (
     <aside className="editorial">
-      <p className="eyebrow">YT Cutter</p>
+      <p className="eyebrow">Cutline Studio</p>
 
       <h1 className="headline">
-        Cut only the parts you want
+        Clip only the moments you need
         <br />
-        <em>from any YouTube video.</em>
+        <em>from YouTube &amp; Twitch.</em>
       </h1>
 
       <p className="lede">
-        Paste a YouTube link, mark the in and out points, and export the clips you need. All
-        processing stays on this computer.
+        Import any YouTube video or Twitch VOD, scrub to the exact frame, and export clean clips or
+        merged highlights locally.
       </p>
+
+      <div className="source-pills" aria-label="Supported video sources">
+        <span className={`source-pill source-pill-youtube${activeSource === "youtube" ? " is-active" : ""}`}>
+          <PlaySquare size={13} strokeWidth={2} aria-hidden="true" />
+          YouTube
+        </span>
+        <span className={`source-pill source-pill-twitch${activeSource === "twitch" ? " is-active" : ""}`}>
+          <Tv size={13} strokeWidth={2} aria-hidden="true" />
+          Twitch VODs
+        </span>
+      </div>
 
       <ol className="steps">
         {STEPS.map((step) => (
@@ -42,9 +61,9 @@ export const HeroPanel = memo(function HeroPanel({ clipCount, totalDurationMs, q
 
       <div className="summary-card" aria-label="Current export summary">
         <div className="summary-card-head">
-          <span className="eyebrow eyebrow-sm">Current set</span>
+          <span className="eyebrow eyebrow-sm">Session deck</span>
           <span className="summary-live">
-            <span className="dot dot-ok" aria-hidden="true" /> Live
+            <span className="dot dot-ok" aria-hidden="true" /> Local
           </span>
         </div>
         <div className="summary-stat">
@@ -66,7 +85,7 @@ export const HeroPanel = memo(function HeroPanel({ clipCount, totalDurationMs, q
           <span>Output</span>
           <b>{qualityLabel(quality)}</b>
         </div>
-        <p className="summary-foot">All processing stays on this computer.</p>
+        <p className="summary-foot">Zero cloud uploads · powered by local FFmpeg &amp; yt-dlp.</p>
       </div>
     </aside>
   );
