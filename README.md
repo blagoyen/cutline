@@ -31,7 +31,7 @@ Instead of downloading an entire multi-hour VOD or video just to trim out a 30-s
 
 Grab the installer from `src-tauri/target/release/bundle/nsis/Cutline_2.0.0_x64-setup.exe` after building, or download a release.
 
-Current build: 2,814,654 bytes · SHA-256 `871842CDB07448BECF46A830B88E12146C576999F51297BAD5D4A2F17F78D66B`.
+Current build: 2,815,258 bytes · SHA-256 `A3BD45F817DEF56CD39E9623B75D9B837A2EDC0CC3E7CE697FB2AEFE11793CA6`.
 
 You need:
 

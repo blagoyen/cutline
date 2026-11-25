@@ -14,9 +14,9 @@
   --surface-2: #efeee9;
   --text-primary: #111110;
   --text-secondary: #5e5d58;
-  --accent: #c93b60;
-  --accent-ink: #a82c4d;
-  --accent-soft: rgba(201, 59, 96, 0.1);
+  --accent: #4f46e5;
+  --accent-ink: #4338ca;
+  --accent-soft: rgba(79, 70, 229, 0.12);
   --cta-bg: #111110;
   --cta-bg-hover: #292927;
   --cta-fg: #f5f4f0;
@@ -51,9 +51,9 @@ html[data-theme="dark"] {
   --surface-2: #151518;
   --text-primary: #f3f2ee;
   --text-secondary: #8c8b85;
-  --accent: #e05275;
-  --accent-ink: #f06788;
-  --accent-soft: rgba(224, 82, 117, 0.14);
+  --accent: #818cf8;
+  --accent-ink: #a5b4fc;
+  --accent-soft: rgba(129, 140, 248, 0.18);
   --cta-bg: #f3f2ee;
   --cta-bg-hover: #ffffff;
   --cta-fg: #0a0a0a;
@@ -5052,36 +5052,28 @@ html[data-theme="light"] .downloads {
 .app-shell[data-source="twitch"] .deck-play,
 .app-shell[data-source="twitch"] .deck-playhead,
 .app-shell[data-source="twitch"] .playhead,
-.app-shell[data-source="twitch"] .playhead-cap {
-  background: var(--source-twitch);
-}
-
-.app-shell[data-source="twitch"] .deck-playhead {
-  box-shadow: 0 0 0 3px var(--source-twitch-soft);
-}
-
-.app-shell[data-source="twitch"] .deck-play.is-playing::after {
-  border-color: var(--source-twitch);
-}
-
-.app-shell[data-source="twitch"] .selection.is-active {
-  border-color: var(--source-twitch);
-  background: var(--source-twitch-soft);
-}
-
+.app-shell[data-source="twitch"] .playhead-cap,
 .app-shell[data-source="youtube"] .deck-play,
 .app-shell[data-source="youtube"] .deck-playhead,
 .app-shell[data-source="youtube"] .playhead,
 .app-shell[data-source="youtube"] .playhead-cap {
-  background: var(--source-youtube);
+  background: var(--accent);
 }
 
+.app-shell[data-source="twitch"] .deck-playhead,
 .app-shell[data-source="youtube"] .deck-playhead {
-  box-shadow: 0 0 0 3px var(--source-youtube-soft);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+.app-shell[data-source="twitch"] .deck-play.is-playing::after,
 .app-shell[data-source="youtube"] .deck-play.is-playing::after {
-  border-color: var(--source-youtube);
+  border-color: var(--accent);
+}
+
+.app-shell[data-source="twitch"] .selection.is-active,
+.app-shell[data-source="youtube"] .selection.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .deck-add {
@@ -5177,6 +5169,8 @@ html[data-theme="light"] .downloads {
 }
 
 .playhead-cap {
+  left: 50%;
+  transform: translateX(-50%);
   width: 10px;
   height: 10px;
   border-radius: 999px;
