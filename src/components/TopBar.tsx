@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useGlobalInfo } from "../hooks/useGlobalInfo";
 import type { DependencyReport } from "../types";
+import { isIosDevice } from "../utils/platform";
 import { BrandMark } from "./BrandMark";
 
 interface TopBarProps {
@@ -19,6 +20,7 @@ interface TopBarProps {
   onOpenSettings: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  isMobile?: boolean;
 }
 
 function dependencySummary(dependencies: DependencyReport | null) {
@@ -46,8 +48,9 @@ const GLOBAL_ICONS = {
   warning: AlertCircle,
 } as const;
 
-/** Tauri window API is available only in the native build. */
-const isNative = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+/** Tauri desktop window controls are only shown on non-mobile native builds. */
+const isNativeDesktop =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window && !isIosDevice();
 
 /** Window methods used by the title bar. */
 type WindowHandle = {
@@ -57,7 +60,13 @@ type WindowHandle = {
   close: () => Promise<void>;
 };
 
-export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, soundEnabled, onToggleSound }: TopBarProps) {
+export const TopBar = memo(function TopBar({
+  dependencies,
+  onOpenSettings,
+  soundEnabled,
+  onToggleSound,
+  isMobile = false,
+}: TopBarProps) {
   const summary = dependencySummary(dependencies);
   const { info: globalInfo, status: infoStatus } = useGlobalInfo();
   const [maximized, setMaximized] = useState(false);
@@ -69,7 +78,7 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
     .join(" · ");
 
   useEffect(() => {
-    if (!isNative) return;
+    if (!isNativeDesktop) return;
     let disposed = false;
     void import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
       if (disposed) return;
@@ -83,7 +92,7 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
 
   const withWindow = useCallback(
     (action: (win: WindowHandle) => void | Promise<void>) => {
-      if (!isNative) return;
+      if (!isNativeDesktop) return;
       void import("@tauri-apps/api/window")
         .then(({ getCurrentWindow }) => action(getCurrentWindow()))
         .catch(() => undefined);
@@ -102,7 +111,7 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
   return (
     <header className="topbar" data-tauri-drag-region>
       <div className="brand" data-tauri-drag-region>
-        <BrandMark size={24} />
+        <BrandMark size={24} monochrome={isMobile} />
         <span className="brand-name" data-tauri-drag-region>Cutline</span>
       </div>
 
@@ -147,11 +156,11 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
           title={summary.detail || versions || "Open settings to configure yt-dlp and FFmpeg"}
         >
           <span className={`dot dot-${summary.tone}`} aria-hidden="true" />
-          <span>{summary.label}</span>
+          <span>{isMobile && summary.tone === "ok" ? "On-Device" : summary.label}</span>
         </button>
         <button
           type="button"
-          className="icon-btn"
+          className="icon-btn topbar-settings"
           onClick={onOpenSettings}
           aria-label="Open settings"
           title="Settings"
@@ -159,7 +168,7 @@ export const TopBar = memo(function TopBar({ dependencies, onOpenSettings, sound
           <Settings2 size={16} strokeWidth={1.75} />
         </button>
 
-        {isNative ? (
+        {isNativeDesktop && !isMobile ? (
           <div className="window-controls" aria-label="Window controls">
             <button
               type="button"

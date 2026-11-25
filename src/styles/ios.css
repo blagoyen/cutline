@@ -1,32 +1,36 @@
 /* ============================================================================
-   Cutline for iOS — Monochrome Black & White Liquid Glass + Green / Yellow / Red
-   Activates on iOS devices (data-platform="ios") and mobile viewports (<= 768px)
+   Cutline for iOS — True Apple Liquid Glass
+   Strict Monochrome Black & White + Functional Green / Yellow / Red Only
    ============================================================================ */
 
-.mobile-tabbar {
+.mobile-tabbar,
+.urlbar-error-mobile {
   display: none;
 }
 
 @media (max-width: 768px) {
-  html {
-    --background: #050505;
-    --surface: rgba(255, 255, 255, 0.06);
-    --surface-2: rgba(255, 255, 255, 0.09);
-    --muted: rgba(255, 255, 255, 0.12);
+  /* Beat html[data-theme="dark"] / [data-theme="light"] specificity in app.css */
+  html,
+  html[data-theme="dark"],
+  html[data-theme="light"] {
+    --background: #040405;
+    --surface: rgba(255, 255, 255, 0.05);
+    --surface-2: rgba(255, 255, 255, 0.08);
+    --muted: rgba(255, 255, 255, 0.11);
     --border: rgba(255, 255, 255, 0.16);
     --border-soft: rgba(255, 255, 255, 0.09);
     --border-strong: rgba(255, 255, 255, 0.28);
     --text-primary: #ffffff;
     --text-secondary: rgba(255, 255, 255, 0.74);
-    --label: rgba(255, 255, 255, 0.5);
+    --label: rgba(255, 255, 255, 0.52);
 
-    /* Pure B&W primary + functional Green / Yellow / Red only */
+    /* Pure Black & White primary + Green / Yellow / Red status accents ONLY */
     --accent: #ffffff;
-    --accent-ink: #e5e5e5;
+    --accent-ink: #e4e4e7;
     --accent-soft: rgba(255, 255, 255, 0.14);
     --cta-bg: #ffffff;
-    --cta-bg-hover: #e5e5e5;
-    --cta-fg: #050505;
+    --cta-bg-hover: #e4e4e7;
+    --cta-fg: #050506;
 
     --success: #34c759;
     --warning: #facc15;
@@ -38,55 +42,130 @@
     --source-twitch-soft: rgba(255, 255, 255, 0.14);
   }
 
-  .app-shell {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  html,
+  body {
+    background: #040405;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
+  * {
+    touch-action: manipulation;
+  }
+
+  /* Higher-visibility animated monochrome halftone Moonlit Sea so Liquid Glass refracts it */
+  .app-shell.is-landing .ascii-field-ambient {
+    opacity: 0.78;
+  }
+
+  .app-shell.has-video .ascii-field-ambient {
+    opacity: 0.34;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden;
+  }
+
+  /* Floating Liquid Glass TopBar (no Windows buttons, no overflow) */
   .topbar {
     position: sticky;
     top: 0;
+    z-index: 40;
     height: auto;
     min-height: calc(56px + env(safe-area-inset-top, 0px));
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
-    grid-template-columns: auto 1fr auto;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
-    background: rgba(5, 5, 5, 0.72);
-    backdrop-filter: blur(28px) saturate(140%);
-    -webkit-backdrop-filter: blur(28px) saturate(140%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, rgba(4, 4, 5, 0.78) 0%, rgba(4, 4, 5, 0) 100%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 0;
   }
 
-  .topbar-center {
-    display: none;
+  .topbar .brand {
+    padding: 6px 14px 6px 8px;
+    border-radius: 999px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.04) 60%,
+      rgba(255, 255, 255, 0.08) 100%
+    );
+    backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
+    -webkit-backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
+    border: 0.5px solid rgba(255, 255, 255, 0.24);
+    box-shadow:
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.44),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
+      0 10px 26px rgba(0, 0, 0, 0.42);
+  }
+
+  .topbar-center,
+  .topbar-sound,
+  .topbar-settings,
+  .window-controls {
+    display: none !important;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dep-pill {
+    height: 34px;
+    padding: 0 13px;
+    border-radius: 999px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.04) 60%,
+      rgba(255, 255, 255, 0.08) 100%
+    );
+    backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
+    -webkit-backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
+    border: 0.5px solid rgba(255, 255, 255, 0.24);
+    box-shadow:
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.42),
+      0 10px 26px rgba(0, 0, 0, 0.4);
+    color: #ffffff;
   }
 
   .workspace {
-    padding: 14px 14px 28px;
+    padding: 8px 16px 28px;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
-  /* Liquid Glass cards on iOS */
+  /* True Apple Liquid Glass Cards — translucent refraction + specular rim */
   .editorial-hero,
   .landing-showcase,
   .stage,
   .timeline,
   .clip-toolbar,
   .clips,
-  .downloads,
-  .urlbar {
+  .downloads {
     background: linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.11) 0%,
-      rgba(255, 255, 255, 0.04) 55%,
-      rgba(255, 255, 255, 0.07) 100%
+      152deg,
+      rgba(255, 255, 255, 0.10) 0%,
+      rgba(255, 255, 255, 0.025) 48%,
+      rgba(255, 255, 255, 0.065) 100%
     );
-    backdrop-filter: blur(28px) saturate(145%);
-    -webkit-backdrop-filter: blur(28px) saturate(145%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(38px) saturate(185%) brightness(1.1);
+    -webkit-backdrop-filter: blur(38px) saturate(185%) brightness(1.1);
+    border: 0.5px solid rgba(255, 255, 255, 0.24);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.30),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-      0 16px 40px rgba(0, 0, 0, 0.45);
-    border-radius: 24px;
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.46),
+      inset 1px 0 0.5px rgba(255, 255, 255, 0.16),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
+      0 20px 48px rgba(0, 0, 0, 0.52);
+    border-radius: 28px;
   }
 
   .editorial-hero,
@@ -95,27 +174,105 @@
   .clip-toolbar,
   .clips,
   .downloads {
-    padding: 16px;
+    padding: 18px;
+  }
+
+  .editorial-hero {
+    margin-top: 6px;
   }
 
   .editorial-headline {
-    font-size: 34px;
-    line-height: 1.06;
+    font-size: 36px;
+    line-height: 1.04;
+    margin-bottom: 12px;
+  }
+
+  .editorial-lede {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .editorial-kicker,
+  .source-pill {
+    background: rgba(255, 255, 255, 0.07);
+    border: 0.5px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .editorial-kicker-dot,
+  .session-dot,
+  .timeline-dot {
+    background: var(--success);
+    box-shadow: 0 0 8px rgba(52, 199, 89, 0.7);
+  }
+
+  .source-pill-youtube svg {
+    color: var(--danger);
+  }
+
+  .source-pill-twitch svg {
+    color: #ffffff;
+  }
+
+  .spec-num {
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  /* Seamless Liquid Glass URL Capsule (no vertical divider, no text clipping) */
+  .urlbar-wrap {
+    padding-top: 14px;
   }
 
   .urlbar {
     border-radius: 999px;
     padding: 6px 6px 6px 14px;
+    gap: 8px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.13) 0%,
+      rgba(255, 255, 255, 0.04) 55%,
+      rgba(255, 255, 255, 0.09) 100%
+    );
+    backdrop-filter: blur(40px) saturate(185%) brightness(1.1);
+    -webkit-backdrop-filter: blur(40px) saturate(185%) brightness(1.1);
+    border: 0.5px solid rgba(255, 255, 255, 0.26);
+    box-shadow:
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.48),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
+      0 14px 34px rgba(0, 0, 0, 0.45);
+  }
+
+  .urlbar-icon {
+    border-right: 0 !important;
+    padding-right: 0 !important;
+    width: auto;
+    color: rgba(255, 255, 255, 0.62);
   }
 
   .urlbar input {
-    font-size: 15px; /* Prevents iOS Safari auto-zoom on focus */
-    min-height: 36px;
+    font-size: 16px; /* Strictly prevents iOS Safari/WKWebView zoom on focus */
+    min-height: 38px;
+    padding: 0 4px;
+    color: #ffffff;
+  }
+
+  .urlbar input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
   }
 
   .urlbar-submit {
-    min-height: 38px;
+    min-height: 40px;
     padding: 0 16px;
+    background: #ffffff;
+    color: #050506;
+    border: 0;
+    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.22);
+    transition: transform 0.14s ease, opacity 0.14s ease;
+  }
+
+  .urlbar-submit:active:not(:disabled) {
+    transform: scale(0.96);
   }
 
   .urlbar-submit span {
@@ -126,40 +283,87 @@
     display: none;
   }
 
-  .ascii-band-frame {
-    height: 132px;
-    background: #080808;
+  .urlbar-error-mobile {
+    display: block;
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: rgba(255, 59, 48, 0.14);
+    border: 0.5px solid rgba(255, 59, 48, 0.45);
+    color: #ff6961;
+    font-size: 12.5px;
+    line-height: 1.45;
   }
 
-  /* Playhead in crisp Red for instant visibility on monochrome B&W timeline */
+  .ascii-band-frame {
+    height: 136px;
+    background: rgba(5, 5, 6, 0.45);
+  }
+
+  /* Studio & Timeline — Monochrome B&W + Red Playhead + Green/Yellow Status */
+  .session-strip {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 0.5px solid rgba(255, 255, 255, 0.22);
+  }
+
+  .player-frame {
+    border-radius: 20px;
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .editorial-deck {
+    background: rgba(10, 10, 12, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
   .playhead,
   .playhead-cap,
   .deck-playhead {
     background: var(--danger) !important;
-    box-shadow: 0 0 10px rgba(255, 59, 48, 0.55) !important;
+    box-shadow: 0 0 12px rgba(255, 59, 48, 0.65) !important;
+  }
+
+  .playhead-cap {
+    border-color: #ffffff;
   }
 
   .track-played {
     background: linear-gradient(
       90deg,
       rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.14)
+      rgba(255, 255, 255, 0.15)
     );
   }
 
   .selection {
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.24),
+      rgba(255, 255, 255, 0.26),
       rgba(255, 255, 255, 0.12)
     );
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.62);
     border-top: 2px solid #ffffff;
   }
 
   .selection-number {
     background: #ffffff;
-    color: #050505;
+    color: #050506;
+  }
+
+  /* Larger 44px touch targets on timeline handles for thumb trimming */
+  .handle {
+    width: 28px;
+  }
+
+  .handle-left {
+    left: -14px;
+  }
+
+  .handle-right {
+    right: -14px;
   }
 
   .timeline-head {
@@ -186,13 +390,15 @@
   .deck-play,
   .deck-chip,
   .deck-add,
-  .deck-preset {
-    min-height: 38px;
+  .deck-preset,
+  .btn-primary,
+  .export-cta {
+    min-height: 40px;
   }
 
   .deck-play {
     background: #ffffff !important;
-    color: #050505 !important;
+    color: #050506 !important;
   }
 
   .toolbar-grid {
@@ -212,38 +418,55 @@
     display: none;
   }
 
-  /* Floating iOS 26 Liquid Glass Tab Bar */
+  /* Settings Drawer — full-screen Liquid Glass sheet on iOS */
+  .drawer {
+    width: 100vw;
+    border-left: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: linear-gradient(
+      165deg,
+      rgba(24, 24, 26, 0.88) 0%,
+      rgba(8, 8, 10, 0.94) 100%
+    );
+    backdrop-filter: blur(44px) saturate(180%);
+    -webkit-backdrop-filter: blur(44px) saturate(180%);
+  }
+
+  /* Floating Apple iOS 26 Liquid Glass Pill Tab Bar */
   .mobile-tabbar {
     position: fixed;
     left: 16px;
     right: 16px;
     bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     z-index: 60;
-    height: 62px;
+    height: 64px;
     padding: 5px;
     border-radius: 999px;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     align-items: center;
     background: linear-gradient(
-      160deg,
-      rgba(32, 32, 32, 0.78) 0%,
-      rgba(12, 12, 12, 0.72) 100%
+      155deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.04) 55%,
+      rgba(255, 255, 255, 0.09) 100%
     );
-    backdrop-filter: blur(32px) saturate(150%);
-    -webkit-backdrop-filter: blur(32px) saturate(150%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(44px) saturate(190%) brightness(1.12);
+    -webkit-backdrop-filter: blur(44px) saturate(190%) brightness(1.12);
+    border: 0.5px solid rgba(255, 255, 255, 0.28);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.34),
-      0 16px 40px rgba(0, 0, 0, 0.65);
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.5),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.1),
+      0 20px 44px rgba(0, 0, 0, 0.68);
   }
 
   .mobile-tab {
-    height: 50px;
+    height: 52px;
     border: 0;
     border-radius: 999px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.52);
+    color: rgba(255, 255, 255, 0.54);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -253,7 +476,11 @@
     font-size: 10px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.16s ease, color 0.16s ease;
+    transition: transform 0.14s ease, background-color 0.16s ease, color 0.16s ease;
+  }
+
+  .mobile-tab:active:not(:disabled) {
+    transform: scale(0.94);
   }
 
   .mobile-tab:disabled {
@@ -264,12 +491,12 @@
   .mobile-tab.is-active {
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.22),
-      rgba(255, 255, 255, 0.09)
+      rgba(255, 255, 255, 0.26) 0%,
+      rgba(255, 255, 255, 0.10) 100%
     );
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.38),
-      0 4px 12px rgba(0, 0, 0, 0.25);
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.52),
+      0 4px 14px rgba(0, 0, 0, 0.28);
     color: #ffffff;
   }
 }

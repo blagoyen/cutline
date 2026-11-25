@@ -7,6 +7,7 @@ interface UrlBarProps {
   loading: boolean;
   error: string | null;
   disabled?: boolean;
+  isMobile?: boolean;
   onChange: (value: string) => void;
   onSubmit: () => void;
 }
@@ -24,6 +25,7 @@ export const UrlBar = memo(function UrlBar({
   loading,
   error,
   disabled,
+  isMobile = false,
   onChange,
   onSubmit,
 }: UrlBarProps) {
@@ -53,7 +55,7 @@ export const UrlBar = memo(function UrlBar({
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Paste a YouTube video or Twitch VOD link..."
+          placeholder={isMobile ? "Paste YouTube or Twitch link…" : "Paste a YouTube video or Twitch VOD link..."}
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
@@ -82,6 +84,12 @@ export const UrlBar = memo(function UrlBar({
           )}
         </button>
       </form>
+
+      {error ? (
+        <p className="urlbar-error-mobile" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       <div className="urlbar-meta">
         <span className={error ? "error-text" : "urlbar-hint"}>

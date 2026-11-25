@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "label": "RELEASE",
-  "message": "Cutline 2.1.1 — Precision timeline & topbar polish.",
+  "message": "Cutline 2.2.0 — Liquid Glass iOS & desktop CI releases.",
   "tone": "success",
   "updatedAt": "2026-11-25"
 }

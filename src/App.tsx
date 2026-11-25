@@ -20,6 +20,7 @@ import { Toasts } from "./components/Toasts";
 import { BrandMark } from "./components/BrandMark";
 import { AsciiBackdrop } from "./components/AsciiBackdrop";
 import { MobileTabBar, type MobileTab } from "./components/MobileTabBar";
+import { isMobilePlatform } from "./utils/platform";
 
 const SettingsPanel = lazy(() =>
   import("./components/SettingsPanel").then((module) => ({ default: module.SettingsPanel })),
@@ -82,14 +83,16 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [installingTools, setInstallingTools] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false,
-  );
+  const [isMobile, setIsMobile] = useState(() => isMobilePlatform());
   const [mobileTab, setMobileTab] = useState<MobileTab>("home");
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 768px)");
-    const sync = () => setIsMobile(mq.matches);
+    const sync = () => {
+      const mobile = isMobilePlatform();
+      setIsMobile(mobile);
+      document.documentElement.dataset.platform = mobile ? "ios" : "desktop";
+    };
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
@@ -744,6 +747,7 @@ export default function App() {
         onOpenSettings={openSettings}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
+        isMobile={isMobile}
       />
 
       <main className="workspace">
@@ -754,6 +758,7 @@ export default function App() {
             quality={quality}
             format={format}
             activeSource={null}
+            isMobile={isMobile}
           />
         ) : null}
 
@@ -761,6 +766,7 @@ export default function App() {
           value={url}
           loading={loadingVideo}
           error={loadError}
+          isMobile={isMobile}
           onChange={handleUrlChange}
           onSubmit={handleUrlSubmit}
         />
@@ -793,7 +799,11 @@ export default function App() {
               <div className="spec-cell">
                 <span className="spec-num">03</span>
                 <span className="spec-title">Local &amp; Private</span>
-                <span className="spec-desc">Downloads only selected ranges with local yt-dlp and FFmpeg.</span>
+                <span className="spec-desc">
+                  {isMobile
+                    ? "Trims and saves selected ranges on-device with native AVFoundation."
+                    : "Downloads only selected ranges with local yt-dlp and FFmpeg."}
+                </span>
               </div>
             </div>
           </section>

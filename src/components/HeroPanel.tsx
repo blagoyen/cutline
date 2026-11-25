@@ -10,6 +10,7 @@ interface HeroPanelProps {
   format: string;
   activeSource: VideoSource | null;
   compact?: boolean;
+  isMobile?: boolean;
 }
 
 export const HeroPanel = memo(function HeroPanel({
@@ -19,6 +20,7 @@ export const HeroPanel = memo(function HeroPanel({
   format,
   activeSource,
   compact = false,
+  isMobile = false,
 }: HeroPanelProps) {
   if (compact) {
     return (
@@ -58,11 +60,12 @@ export const HeroPanel = memo(function HeroPanel({
         </h1>
         <p className="editorial-lede">
           <span>
-            Import YouTube videos and Twitch VODs, scrub to the exact frame, and slice clean MP4 or
-            MP3 clips.
+            Import YouTube videos and Twitch VODs, scrub to the exact frame, and slice clean{" "}
+            {isMobile ? "MP4 or M4A" : "MP4 or MP3"} clips.
           </span>{" "}
-          Built on local yt-dlp &amp; FFmpeg infrastructure that stays private, fast, and entirely on
-          your machine.
+          {isMobile
+            ? "Hardware-accelerated with native AVFoundation — private, fast, and 100% on your iPhone."
+            : "Built on local yt-dlp & FFmpeg infrastructure that stays private, fast, and entirely on your machine."}
         </p>
       </div>
 
