@@ -2335,13 +2335,6 @@ select.input {
   color: var(--text-primary);
 }
 
-.dep-banner-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-}
-
 .app-footer {
   display: flex;
   align-items: center;
@@ -2516,14 +2509,7 @@ select.input {
     justify-content: space-between;
   }
 
-  .dep-banner-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-}
-
-.app-footer {
+  .app-footer {
     flex-wrap: wrap;
   }
 
@@ -4252,13 +4238,6 @@ html[data-theme="dark"] .deck-buffered {
 .clip-toolbar,
 .clips,
 .downloads,
-.dep-banner-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-}
-
 .app-footer {
   animation: panelIn 0.36s cubic-bezier(0.2, 0.85, 0.25, 1) both;
   will-change: transform, opacity;
@@ -4287,13 +4266,6 @@ html[data-theme="dark"] .deck-buffered {
 
 .downloads {
   animation-delay: 230ms;
-}
-
-.dep-banner-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
 }
 
 .app-footer {
@@ -4621,14 +4593,43 @@ select,
 .clip-toolbar,
 .clips,
 .downloads {
+  display: block;
+  width: 100%;
   background: var(--surface);
   padding: 20px;
   border: 1px solid var(--border);
 }
 
+.urlbar-wrap {
+  display: block;
+  width: 100%;
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
 .player-frame {
+  display: block;
+  width: 100%;
   overflow: hidden;
   border: 1px solid var(--border);
+}
+
+.player-frame .frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #050507;
+  overflow: hidden;
+}
+
+.toolbar-grid {
+  grid-template-columns: minmax(175px, 1.15fr) minmax(150px, 1fr) minmax(190px, 1.25fr) auto;
+  gap: 12px;
+}
+
+.toolbar-field select.input {
+  width: 100%;
+  text-overflow: ellipsis;
 }
 
 /* Minimal monochrome primary buttons */
