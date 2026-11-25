@@ -64,6 +64,16 @@ pub fn run() {
             let _ = std::fs::create_dir_all(&config_dir);
             let settings_path = config_dir.join("settings.json");
 
+            #[cfg(target_os = "ios")]
+            let default_output_dir = app
+                .path()
+                .document_dir()
+                .map(|dir| dir.join("Cutline"))
+                .unwrap_or_else(|_| PathBuf::from("Cutline"))
+                .to_string_lossy()
+                .into_owned();
+
+            #[cfg(not(target_os = "ios"))]
             let default_output_dir = app
                 .path()
                 .video_dir()

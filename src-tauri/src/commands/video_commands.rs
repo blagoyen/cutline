@@ -13,8 +13,16 @@ pub async fn probe_video(
     url: String,
 ) -> Result<VideoInfo, CommandError> {
     let (canonical, _id) = yt_dlp::canonicalize(&url)?;
-    let settings = lock(&state.settings).clone();
-    let info = yt_dlp::fetch_metadata(&canonical, &settings).await?;
+    #[cfg(target_os = "ios")]
+    let info = {
+        let _ = &state;
+        crate::services::ios_media::probe(&canonical).await?
+    };
+    #[cfg(not(target_os = "ios"))]
+    let info = {
+        let settings = lock(&state.settings).clone();
+        yt_dlp::fetch_metadata(&canonical, &settings).await?
+    };
 
     if info.is_live {
         return Err(CommandError::new(

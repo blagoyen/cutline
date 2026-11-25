@@ -19,6 +19,7 @@ import { DependencyBanner } from "./components/DependencyBanner";
 import { Toasts } from "./components/Toasts";
 import { BrandMark } from "./components/BrandMark";
 import { AsciiBackdrop } from "./components/AsciiBackdrop";
+import { MobileTabBar, type MobileTab } from "./components/MobileTabBar";
 
 const SettingsPanel = lazy(() =>
   import("./components/SettingsPanel").then((module) => ({ default: module.SettingsPanel })),
@@ -81,6 +82,40 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [installingTools, setInstallingTools] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false,
+  );
+  const [mobileTab, setMobileTab] = useState<MobileTab>("home");
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const handleMobileTab = useCallback(
+    (tab: MobileTab) => {
+      if (tab === "settings") {
+        setSettingsOpen(true);
+        return;
+      }
+      setMobileTab(tab);
+      if (tab === "home") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (tab === "studio") {
+        document.querySelector(".studio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (tab === "exports") {
+        (
+          document.querySelector(".studio-downloads") ??
+          document.querySelector(".clip-toolbar") ??
+          document.querySelector(".clips")
+        )?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    },
+    [],
+  );
   const {
     items: toasts,
     notify: toast,
@@ -703,7 +738,7 @@ export default function App() {
 
   return (
     <div className={`app-shell${video ? " has-video" : " is-landing"}`} data-source={video?.source ?? "none"}>
-      <AsciiBackdrop variant="ambient" />
+      <AsciiBackdrop variant="ambient" monochrome={isMobile} />
       <TopBar
         dependencies={dependencies}
         onOpenSettings={openSettings}
@@ -742,7 +777,7 @@ export default function App() {
         {!video ? (
           <section className="landing-showcase" aria-label="Capabilities">
             <div className="ascii-band-frame">
-              <AsciiBackdrop variant="band" />
+              <AsciiBackdrop variant="band" monochrome={isMobile} />
             </div>
             <div className="spec-grid">
               <div className="spec-cell">
@@ -891,6 +926,14 @@ export default function App() {
           />
         </Suspense>
       ) : null}
+
+      <MobileTabBar
+        activeTab={settingsOpen ? "settings" : video && mobileTab === "home" ? "studio" : mobileTab}
+        hasVideo={Boolean(video)}
+        clipCount={clips.length}
+        activeDownloads={activeCount}
+        onSelect={handleMobileTab}
+      />
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />
     </div>

@@ -7,6 +7,8 @@ interface AsciiBackdropProps {
    * "band":    framed showcase panorama on the landing screen.
    */
   variant?: "ambient" | "band";
+  /** Pure monochrome silver/white halftone palette (used for iOS Liquid Glass). */
+  monochrome?: boolean;
 }
 
 /*
@@ -84,15 +86,23 @@ const MOON = gradient(["#f7e7a8", "#fff8e0"], 4);
 const STAR_COLOR = "#dfe8ff";
 const PALETTE = [...SKY, ...SEA, ...MOON, STAR_COLOR];
 
+const MONO_SKY = gradient(["#181818", "#343434", "#5c5c5c", "#8f8f8f"], 10);
+const MONO_SEA = gradient(["#111111", "#2b2b2b", "#525252", "#8a8a8a"], 10);
+const MONO_MOON = gradient(["#d4d4d4", "#ffffff"], 4);
+const MONO_STAR = "#f5f5f5";
+const MONO_PALETTE = [...MONO_SKY, ...MONO_SEA, ...MONO_MOON, MONO_STAR];
+
 const TARGET_FPS = 20;
 const FRAME_INTERVAL_MS = 1000 / TARGET_FPS;
 
 export const AsciiBackdrop = memo(function AsciiBackdrop({
   variant = "ambient",
+  monochrome = false,
 }: AsciiBackdropProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    const activePalette = monochrome ? MONO_PALETTE : PALETTE;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { alpha: true });
@@ -230,7 +240,7 @@ export const AsciiBackdrop = memo(function AsciiBackdrop({
 
       // Batch dots by color palette index for minimal canvas state changes
       ctx.clearRect(0, 0, width, height);
-      for (let ci = 0; ci < PALETTE.length; ci++) {
+      for (let ci = 0; ci < activePalette.length; ci++) {
         let hasAny = false;
         for (let y = 0; y < rows; y++) {
           const yOff = y * cols;
@@ -250,7 +260,7 @@ export const AsciiBackdrop = memo(function AsciiBackdrop({
           }
         }
         if (hasAny) {
-          ctx.fillStyle = PALETTE[ci];
+          ctx.fillStyle = activePalette[ci];
           ctx.fill();
         }
       }
@@ -282,7 +292,7 @@ export const AsciiBackdrop = memo(function AsciiBackdrop({
       observer?.disconnect();
       window.removeEventListener("resize", resize);
     };
-  }, [variant]);
+  }, [variant, monochrome]);
 
   return (
     <canvas

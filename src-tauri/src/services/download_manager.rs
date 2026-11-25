@@ -451,6 +451,9 @@ impl DownloadManager {
             return;
         };
 
+        #[cfg(target_os = "ios")]
+        let result = self.execute_ios(&task, &control).await;
+        #[cfg(not(target_os = "ios"))]
         let result = self.execute(&task, &control).await;
         let was_cancelled = control.cancelled.load(Ordering::SeqCst);
 
@@ -895,6 +898,78 @@ impl DownloadManager {
             )
         });
         inner.tasks.clone()
+    }
+
+    #[cfg(target_os = "ios")]
+    async fn execute_ios(
+        &self,
+        task: &DownloadTask,
+        control: &TaskControl,
+    ) -> Result<Outcome, CommandError> {
+        if control.cancelled.load(Ordering::SeqCst) {
+            return Err(CommandError::new("CANCELLED", "Download cancelled."));
+        }
+
+        let settings = lock(&self.settings).clone();
+        let output_dir = PathBuf::from(&settings.output_dir);
+        tokio::fs::create_dir_all(&output_dir).await.map_err(|err| {
+            CommandError::new("OUTPUT_DIR_ERROR", "Could not create Cutline Documents folder.")
+                .with_detail(err.to_string())
+        })?;
+
+        let info = crate::services::ios_media::probe(&task.url).await?;
+        let stream_url = info.stream_url.ok_or_else(|| {
+            CommandError::new(
+                "NO_STREAM_URL",
+                "Could not resolve a direct playable stream URL for this video on iOS.",
+            )
+        })?;
+
+        let sections: Vec<DownloadSection> = if task.sections.is_empty() {
+            vec![DownloadSection {
+                start_ms: task.start_ms,
+                end_ms: task.end_ms,
+            }]
+        } else {
+            task.sections.clone()
+        };
+        let sections_json = serde_json::to_string(&sections)
+            .map_err(|err| CommandError::new("SERIALIZE_ERROR", err.to_string()))?;
+
+        let audio_only = task.format.eq_ignore_ascii_case("mp3")
+            || task.format.eq_ignore_ascii_case("m4a");
+        let ext = if audio_only { "m4a" } else { "mp4" };
+        let base = sanitize_filename(&task.file_base);
+        let destination = unique_path(&output_dir, &base, ext);
+
+        self.apply_progress_scaled(&task.id, &Progress::empty(), DownloadStatus::Processing, 0, 1);
+
+        crate::services::ios_media::export_clip_avfoundation(
+            stream_url,
+            sections_json,
+            destination.to_string_lossy().into_owned(),
+            ext.to_string(),
+            true,
+        )
+        .await?;
+
+        let meta = tokio::fs::metadata(&destination).await.map_err(|err| {
+            CommandError::new("OUTPUT_MISSING", "Exported clip could not be verified.")
+                .with_detail(err.to_string())
+        })?;
+
+        let total_ms: u64 = sections
+            .iter()
+            .map(|s| s.end_ms.saturating_sub(s.start_ms))
+            .sum();
+
+        Ok(Outcome {
+            path: destination,
+            size: meta.len(),
+            duration_ms: if total_ms > 0 { Some(total_ms) } else { None },
+            has_audio: true,
+            has_video: !audio_only,
+        })
     }
 
     pub fn shutdown(&self) {

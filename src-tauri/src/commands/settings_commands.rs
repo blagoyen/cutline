@@ -80,16 +80,32 @@ pub async fn update_settings(
 pub async fn check_dependencies(
     state: State<'_, AppState>,
 ) -> Result<DependencyReport, CommandError> {
-    let settings = lock(&state.settings).clone();
-    Ok(binaries::check_dependencies(&settings).await)
+    #[cfg(target_os = "ios")]
+    {
+        let _ = &state;
+        return Ok(crate::services::ios_media::ios_dependency_report());
+    }
+    #[cfg(not(target_os = "ios"))]
+    {
+        let settings = lock(&state.settings).clone();
+        Ok(binaries::check_dependencies(&settings).await)
+    }
 }
 
 #[tauri::command]
 pub async fn install_dependencies(
     state: State<'_, AppState>,
 ) -> Result<DependencyReport, CommandError> {
-    let settings = lock(&state.settings).clone();
-    binaries::install_missing(&settings).await
+    #[cfg(target_os = "ios")]
+    {
+        let _ = &state;
+        return Ok(crate::services::ios_media::ios_dependency_report());
+    }
+    #[cfg(not(target_os = "ios"))]
+    {
+        let settings = lock(&state.settings).clone();
+        binaries::install_missing(&settings).await
+    }
 }
 
 /// Test YouTube auth using the supplied settings.
