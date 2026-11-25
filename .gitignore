@@ -16,3 +16,5 @@ Thumbs.db
 
 # Local settings and exports are never committed
 *.local.json
+
+dist-ios/

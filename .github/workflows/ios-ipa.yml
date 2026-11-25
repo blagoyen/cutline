@@ -47,7 +47,7 @@ jobs:
           IPHONEOS_DEPLOYMENT_TARGET: "15.0"
         run: |
           set -euo pipefail
-          cargo rustc --manifest-path src-tauri/Cargo.toml --release --target aarch64-apple-ios --lib --crate-type staticlib
+          cargo rustc --manifest-path src-tauri/Cargo.toml --release --target aarch64-apple-ios --lib --features tauri/custom-protocol --crate-type staticlib
           mkdir -p src-tauri/gen/apple/Externals/arm64/release
           cp src-tauri/target/aarch64-apple-ios/release/libcutline_lib.a src-tauri/gen/apple/Externals/arm64/release/libapp.a
           ls -lh src-tauri/gen/apple/Externals/arm64/release/libapp.a
