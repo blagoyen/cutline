@@ -740,7 +740,7 @@ export default function App() {
       data-source={video?.source ?? "none"}
       data-mobile-tab={mobileTab}
     >
-      <AsciiBackdrop variant="ambient" monochrome={isMobile} />
+      {!isMobile ? <AsciiBackdrop variant="ambient" /> : null}
       <TopBar
         dependencies={dependencies}
         onOpenSettings={openSettings}
@@ -779,7 +779,7 @@ export default function App() {
           />
         ) : null}
 
-        {!video ? (
+        {!video && !isMobile ? (
           <section className="landing-showcase" aria-label="Capabilities">
             <div className="ascii-band-frame">
               <AsciiBackdrop variant="band" monochrome={isMobile} />

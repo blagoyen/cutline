@@ -1,6 +1,6 @@
 /* ============================================================================
-   Cutline for iOS — True Apple Liquid Glass
-   Strict Monochrome Black & White + Functional Green / Yellow / Red Only
+   Cutline for iOS — Minimalist Native Dark UI
+   Pure OLED Black & White + Functional Green / Yellow / Red Only
    ============================================================================ */
 
 .mobile-tabbar,
@@ -9,48 +9,46 @@
 }
 
 @media (max-width: 768px) {
-  /* Beat html[data-theme="dark"] / [data-theme="light"] specificity in app.css */
   html,
   html[data-theme="dark"],
   html[data-theme="light"] {
-    --background: #040405;
-    --surface: rgba(255, 255, 255, 0.05);
-    --surface-2: rgba(255, 255, 255, 0.08);
-    --muted: rgba(255, 255, 255, 0.11);
-    --border: rgba(255, 255, 255, 0.16);
-    --border-soft: rgba(255, 255, 255, 0.09);
-    --border-strong: rgba(255, 255, 255, 0.28);
+    --background: #000000;
+    --surface: #111113;
+    --surface-2: #18181b;
+    --muted: #222226;
+    --border: rgba(255, 255, 255, 0.09);
+    --border-soft: rgba(255, 255, 255, 0.06);
+    --border-strong: rgba(255, 255, 255, 0.16);
     --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.74);
-    --label: rgba(255, 255, 255, 0.52);
+    --text-secondary: #a1a1aa;
+    --label: #71717a;
 
-    /* Pure Black & White primary + Green / Yellow / Red status accents ONLY */
     --accent: #ffffff;
     --accent-ink: #e4e4e7;
-    --accent-soft: rgba(255, 255, 255, 0.14);
+    --accent-soft: rgba(255, 255, 255, 0.10);
     --cta-bg: #ffffff;
     --cta-bg-hover: #e4e4e7;
-    --cta-fg: #050506;
+    --cta-fg: #000000;
 
     --success: #34c759;
     --warning: #facc15;
     --danger: #ff3b30;
 
     --source-youtube: #ff3b30;
-    --source-youtube-soft: rgba(255, 59, 48, 0.16);
+    --source-youtube-soft: rgba(255, 59, 48, 0.14);
     --source-twitch: #ffffff;
-    --source-twitch-soft: rgba(255, 255, 255, 0.14);
+    --source-twitch-soft: rgba(255, 255, 255, 0.10);
   }
 
   html,
   body {
-    background: #040405;
+    background: #000000;
     overflow-x: hidden;
     overscroll-behavior-x: none;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Hide all scrollbars on iOS so it feels like a native app */
+  /* Native iOS apps never show desktop scrollbars */
   *,
   html,
   body,
@@ -66,7 +64,7 @@
     height: 0 !important;
   }
 
-  /* Hide desktop keyboard badges & volume slider on iOS */
+  /* Hide desktop keyboard badges, volume slider, and desktop timeline footer */
   kbd,
   .deck-volume,
   .timeline-foot {
@@ -77,12 +75,20 @@
     touch-action: manipulation;
   }
 
+  .app-shell {
+    min-height: 100dvh;
+    background: #000000;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden;
+  }
+
   /* True native iOS tab screen switching */
   .app-shell[data-mobile-tab="home"] .studio,
   .app-shell[data-mobile-tab="home"] .studio-downloads {
     display: none !important;
   }
 
+  .app-shell[data-mobile-tab="studio"] .ios-home-head,
   .app-shell[data-mobile-tab="studio"] .editorial-hero,
   .app-shell[data-mobile-tab="studio"] .urlbar-wrap,
   .app-shell[data-mobile-tab="studio"] .landing-showcase,
@@ -92,6 +98,7 @@
     display: none !important;
   }
 
+  .app-shell[data-mobile-tab="exports"] .ios-home-head,
   .app-shell[data-mobile-tab="exports"] .editorial-hero,
   .app-shell[data-mobile-tab="exports"] .urlbar-wrap,
   .app-shell[data-mobile-tab="exports"] .landing-showcase,
@@ -101,91 +108,37 @@
     display: none !important;
   }
 
-  .ios-empty-card {
-    margin-top: 16px;
-    padding: 28px 22px;
-    border-radius: 28px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    background: linear-gradient(
-      152deg,
-      rgba(255, 255, 255, 0.10) 0%,
-      rgba(255, 255, 255, 0.025) 48%,
-      rgba(255, 255, 255, 0.065) 100%
-    );
-    backdrop-filter: blur(38px) saturate(185%) brightness(1.1);
-    -webkit-backdrop-filter: blur(38px) saturate(185%) brightness(1.1);
-    border: 0.5px solid rgba(255, 255, 255, 0.24);
-    box-shadow:
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.46),
-      0 20px 48px rgba(0, 0, 0, 0.52);
-  }
-
-  .ios-empty-title {
-    font-family: var(--font-serif);
-    font-size: 26px;
-    font-weight: 400;
-  }
-
-  .ios-empty-desc {
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: var(--text-secondary);
-    max-width: 30ch;
-  }
-
-  /* Higher-visibility animated monochrome halftone Moonlit Sea so Liquid Glass refracts it */
-  .app-shell.is-landing .ascii-field-ambient {
-    opacity: 0.78;
-  }
-
-  .app-shell.has-video .ascii-field-ambient {
-    opacity: 0.34;
-  }
-
-  .app-shell {
-    min-height: 100dvh;
-    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
-    overflow-x: hidden;
-  }
-
-  /* Floating Liquid Glass TopBar (no Windows buttons, no overflow) */
+  /* Clean docked iOS navigation bar */
   .topbar {
     position: sticky;
     top: 0;
     z-index: 40;
     height: auto;
-    min-height: calc(56px + env(safe-area-inset-top, 0px));
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 8px;
+    min-height: calc(52px + env(safe-area-inset-top, 0px));
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    background: linear-gradient(180deg, rgba(4, 4, 5, 0.78) 0%, rgba(4, 4, 5, 0) 100%);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-bottom: 0;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .topbar .brand {
-    padding: 6px 14px 6px 8px;
-    border-radius: 999px;
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.04) 60%,
-      rgba(255, 255, 255, 0.08) 100%
-    );
-    backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
-    -webkit-backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
-    border: 0.5px solid rgba(255, 255, 255, 0.24);
-    box-shadow:
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.44),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
-      0 10px 26px rgba(0, 0, 0, 0.42);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    gap: 9px;
+  }
+
+  .brand-name {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
   }
 
   .topbar-center,
@@ -195,167 +148,95 @@
     display: none !important;
   }
 
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
   .dep-pill {
-    height: 34px;
-    padding: 0 13px;
+    height: 28px;
+    padding: 0 10px;
     border-radius: 999px;
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.04) 60%,
-      rgba(255, 255, 255, 0.08) 100%
-    );
-    backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
-    -webkit-backdrop-filter: blur(36px) saturate(180%) brightness(1.08);
-    border: 0.5px solid rgba(255, 255, 255, 0.24);
-    box-shadow:
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.42),
-      0 10px 26px rgba(0, 0, 0, 0.4);
-    color: #ffffff;
+    background: #141416;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: var(--text-secondary);
+    font-size: 10px;
+    letter-spacing: 0.04em;
   }
 
   .workspace {
-    padding: 8px 16px 28px;
+    padding: 16px 16px 24px;
     max-width: 100%;
     overflow-x: hidden;
   }
 
-  /* True Apple Liquid Glass Cards — translucent refraction + specular rim */
-  .editorial-hero,
-  .landing-showcase,
-  .stage,
-  .timeline,
-  .clip-toolbar,
-  .clips,
-  .downloads {
-    background: linear-gradient(
-      152deg,
-      rgba(255, 255, 255, 0.10) 0%,
-      rgba(255, 255, 255, 0.025) 48%,
-      rgba(255, 255, 255, 0.065) 100%
-    );
-    backdrop-filter: blur(38px) saturate(185%) brightness(1.1);
-    -webkit-backdrop-filter: blur(38px) saturate(185%) brightness(1.1);
-    border: 0.5px solid rgba(255, 255, 255, 0.24);
-    box-shadow:
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.46),
-      inset 1px 0 0.5px rgba(255, 255, 255, 0.16),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
-      0 20px 48px rgba(0, 0, 0, 0.52);
-    border-radius: 28px;
+  /* Minimal Home header */
+  .ios-home-head {
+    padding: 20px 2px 6px;
   }
 
-  .editorial-hero,
-  .stage,
-  .timeline,
-  .clip-toolbar,
-  .clips,
-  .downloads {
-    padding: 18px;
-  }
-
-  .editorial-hero {
-    margin-top: 6px;
-  }
-
-  .editorial-headline {
-    font-size: 36px;
-    line-height: 1.04;
-    margin-bottom: 12px;
-  }
-
-  .editorial-lede {
-    font-size: 14px;
-    line-height: 1.55;
-  }
-
-  .editorial-kicker,
-  .source-pill {
-    background: rgba(255, 255, 255, 0.07);
-    border: 0.5px solid rgba(255, 255, 255, 0.2);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
-    color: rgba(255, 255, 255, 0.88);
-  }
-
-  .editorial-kicker-dot,
-  .session-dot,
-  .timeline-dot {
-    background: var(--success);
-    box-shadow: 0 0 8px rgba(52, 199, 89, 0.7);
-  }
-
-  .source-pill-youtube svg {
-    color: var(--danger);
-  }
-
-  .source-pill-twitch svg {
+  .ios-home-title {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
     color: #ffffff;
+    margin-bottom: 6px;
   }
 
-  .spec-num {
-    color: rgba(255, 255, 255, 0.62);
+  .ios-home-sub {
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text-secondary);
   }
 
-  /* Seamless Liquid Glass URL Capsule (no vertical divider, no text clipping) */
+  /* Clean URL input bar */
   .urlbar-wrap {
     padding-top: 14px;
   }
 
   .urlbar {
-    border-radius: 999px;
-    padding: 6px 6px 6px 14px;
+    border-radius: 14px;
+    padding: 5px 5px 5px 12px;
     gap: 8px;
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.13) 0%,
-      rgba(255, 255, 255, 0.04) 55%,
-      rgba(255, 255, 255, 0.09) 100%
-    );
-    backdrop-filter: blur(40px) saturate(185%) brightness(1.1);
-    -webkit-backdrop-filter: blur(40px) saturate(185%) brightness(1.1);
-    border: 0.5px solid rgba(255, 255, 255, 0.26);
-    box-shadow:
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.48),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
-      0 14px 34px rgba(0, 0, 0, 0.45);
+    background: #111113;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .urlbar:focus-within {
+    border-color: rgba(255, 255, 255, 0.32);
+    box-shadow: none;
   }
 
   .urlbar-icon {
     border-right: 0 !important;
     padding-right: 0 !important;
     width: auto;
-    color: rgba(255, 255, 255, 0.62);
+    color: var(--label);
   }
 
   .urlbar input {
-    font-size: 16px; /* Strictly prevents iOS Safari/WKWebView zoom on focus */
-    min-height: 38px;
+    font-size: 16px; /* Prevents iOS WKWebView zoom on focus */
+    min-height: 40px;
     padding: 0 4px;
     color: #ffffff;
   }
 
   .urlbar input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--label);
   }
 
   .urlbar-submit {
-    min-height: 40px;
-    padding: 0 16px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
     background: #ffffff;
-    color: #050506;
+    color: #000000;
     border: 0;
-    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.22);
-    transition: transform 0.14s ease, opacity 0.14s ease;
+    font-size: 11px;
+    font-weight: 700;
   }
 
   .urlbar-submit:active:not(:disabled) {
-    transform: scale(0.96);
+    transform: scale(0.97);
   }
 
   .urlbar-submit span {
@@ -363,121 +244,129 @@
   }
 
   .urlbar-meta {
+    display: block;
+    margin-top: 10px;
+    padding: 0 2px;
+    background: transparent;
+    border: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    font-size: 12px;
+    color: var(--label);
+  }
+
+  .urlbar-meta-sep,
+  .urlbar-privacy {
     display: none;
   }
 
   .urlbar-error-mobile {
     display: block;
     margin-top: 10px;
-    padding: 10px 14px;
-    border-radius: 16px;
-    background: rgba(255, 59, 48, 0.14);
-    border: 0.5px solid rgba(255, 59, 48, 0.45);
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 59, 48, 0.12);
+    border: 1px solid rgba(255, 59, 48, 0.35);
     color: #ff6961;
-    font-size: 12.5px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  /* Clean flat elevated dark cards */
+  .stage,
+  .timeline,
+  .clip-toolbar,
+  .clips,
+  .downloads,
+  .ios-empty-card {
+    background: #111113;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 14px;
+  }
+
+  .ios-empty-card {
+    margin-top: 12px;
+    padding: 28px 18px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ios-empty-title {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 650;
+    color: #ffffff;
+  }
+
+  .ios-empty-desc {
+    font-size: 13px;
     line-height: 1.45;
+    color: var(--text-secondary);
+    max-width: 30ch;
   }
 
-  .ascii-band-frame {
-    height: 136px;
-    background: rgba(5, 5, 6, 0.45);
-  }
-
-  /* Studio & Timeline — Monochrome B&W + Red Playhead + Green/Yellow Status */
   .session-strip {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border: 0.5px solid rgba(255, 255, 255, 0.22);
+    background: #111113;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 6px 12px;
   }
 
-  .player-frame {
-    border-radius: 20px;
-    border-color: rgba(255, 255, 255, 0.18);
+  .session-dot,
+  .timeline-dot {
+    background: var(--success);
+    box-shadow: none;
   }
 
-  .editorial-deck {
-    background: rgba(10, 10, 12, 0.72);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+  .video-title {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
   }
 
-  .playhead,
-  .playhead-cap,
-  .deck-playhead {
-    background: var(--danger) !important;
-    box-shadow: 0 0 12px rgba(255, 59, 48, 0.65) !important;
-  }
-
-  .playhead-cap {
-    border-color: #ffffff;
-  }
-
-  .track-played {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.15)
-    );
-  }
-
-  .selection {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.26),
-      rgba(255, 255, 255, 0.12)
-    );
-    border: 1px solid rgba(255, 255, 255, 0.62);
-    border-top: 2px solid #ffffff;
-  }
-
-  .selection-number {
-    background: #ffffff;
-    color: #050506;
-  }
-
-  /* Larger 44px touch targets on timeline handles for thumb trimming */
-  .handle {
-    width: 28px;
-  }
-
-  .handle-left {
-    left: -14px;
-  }
-
-  .handle-right {
-    right: -14px;
-  }
-
-  .timeline-head {
-    grid-template-columns: 1fr auto;
-    row-gap: 10px;
-  }
-
-  .timeline-readout {
-    grid-column: 1 / -1;
-    justify-content: center;
-    order: 3;
-  }
-
-  .timeline-keys {
+  .video-source {
     display: none;
   }
 
+  .player-frame {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #000000;
+  }
+
+  .editorial-deck {
+    background: #111113;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px;
+    gap: 10px;
+  }
+
+  /* Clean centered mobile transport controls */
   .deck-transport {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     height: auto;
     gap: 10px;
-    padding: 4px 0 2px;
+    padding: 0;
   }
 
   .deck-time {
     order: -1;
     width: 100%;
     justify-content: center;
-    padding: 7px 14px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     font-size: 12px;
   }
 
@@ -487,6 +376,20 @@
     justify-content: center;
     gap: 10px;
     width: 100%;
+  }
+
+  .deck-play {
+    width: 44px;
+    height: 44px;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .deck-skip {
+    width: 40px;
+    height: 40px;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .deck-group-mark {
@@ -500,7 +403,8 @@
     grid-column: 1 / -1;
     width: 100%;
     justify-content: center;
-    min-height: 44px;
+    min-height: 42px;
+    border-radius: 12px;
     font-size: 12px;
   }
 
@@ -511,13 +415,17 @@
   .deck-chip {
     width: 100%;
     justify-content: center;
-    min-height: 40px;
+    min-height: 38px;
+    border-radius: 10px;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.09);
   }
 
   .deck-utility {
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    padding-top: 8px;
   }
 
   .deck-presets {
@@ -527,22 +435,71 @@
     gap: 8px;
   }
 
-  .deck-play {
-    width: 44px;
-    height: 44px;
-    background: #ffffff !important;
-    color: #050506 !important;
+  .deck-preset {
+    min-height: 34px;
+    border-radius: 10px;
+    background: #18181b;
   }
 
-  .deck-skip {
-    width: 40px;
-    height: 40px;
+  /* Minimal NLE Timeline */
+  .timeline-head {
+    grid-template-columns: 1fr auto;
+    row-gap: 8px;
+    margin-bottom: 10px;
   }
 
-  .deck-preset,
-  .btn-primary,
-  .export-cta {
-    min-height: 40px;
+  .timeline-readout {
+    grid-column: 1 / -1;
+    justify-content: center;
+    order: 3;
+    border-radius: 10px;
+    background: #18181b;
+  }
+
+  .timeline-deck {
+    border-radius: 12px;
+    background: #09090b;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .playhead,
+  .playhead-cap,
+  .deck-playhead {
+    background: var(--danger) !important;
+    box-shadow: none !important;
+  }
+
+  .playhead-cap {
+    border-color: #ffffff;
+  }
+
+  .track-played {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .selection {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-top: 2px solid #ffffff;
+    box-shadow: none;
+  }
+
+  .selection-number {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  /* Generous touch handles for thumb trimming */
+  .handle {
+    width: 28px;
+  }
+
+  .handle-left {
+    left: -14px;
+  }
+
+  .handle-right {
+    right: -14px;
   }
 
   .toolbar-grid {
@@ -558,59 +515,50 @@
     gap: 8px;
   }
 
+  .btn-primary,
+  .export-cta {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
   .app-footer {
     display: none;
   }
 
-  /* Settings Drawer — full-screen Liquid Glass sheet on iOS */
+  /* Full-screen native dark Settings sheet */
   .drawer {
     width: 100vw;
     border-left: 0;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: linear-gradient(
-      165deg,
-      rgba(24, 24, 26, 0.88) 0%,
-      rgba(8, 8, 10, 0.94) 100%
-    );
-    backdrop-filter: blur(44px) saturate(180%);
-    -webkit-backdrop-filter: blur(44px) saturate(180%);
+    background: #0a0a0c;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
-  /* Floating Apple iOS 26 Liquid Glass Pill Tab Bar */
+  /* Clean docked native iOS Tab Bar */
   .mobile-tabbar {
     position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 60;
-    height: 64px;
-    padding: 5px;
-    border-radius: 999px;
+    padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     align-items: center;
-    background: linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.04) 55%,
-      rgba(255, 255, 255, 0.09) 100%
-    );
-    backdrop-filter: blur(44px) saturate(190%) brightness(1.12);
-    -webkit-backdrop-filter: blur(44px) saturate(190%) brightness(1.12);
-    border: 0.5px solid rgba(255, 255, 255, 0.28);
-    box-shadow:
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.5),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.1),
-      0 20px 44px rgba(0, 0, 0, 0.68);
+    background: rgba(10, 10, 12, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .mobile-tab {
-    height: 52px;
+    height: 48px;
     border: 0;
-    border-radius: 999px;
+    border-radius: 10px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.54);
+    color: #71717a;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -620,27 +568,21 @@
     font-size: 10px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.14s ease, background-color 0.16s ease, color 0.16s ease;
+    transition: color 0.14s ease;
   }
 
   .mobile-tab:active:not(:disabled) {
-    transform: scale(0.94);
+    opacity: 0.7;
   }
 
   .mobile-tab:disabled {
-    opacity: 0.32;
+    opacity: 0.3;
     cursor: not-allowed;
   }
 
   .mobile-tab.is-active {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.26) 0%,
-      rgba(255, 255, 255, 0.10) 100%
-    );
-    box-shadow:
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.52),
-      0 4px 14px rgba(0, 0, 0, 0.28);
+    background: transparent;
+    box-shadow: none;
     color: #ffffff;
   }
 }

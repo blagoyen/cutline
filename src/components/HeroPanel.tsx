@@ -50,6 +50,17 @@ export const HeroPanel = memo(function HeroPanel({
     );
   }
 
+  if (isMobile) {
+    return (
+      <section className="ios-home-head" aria-label="Cutline overview">
+        <h1 className="ios-home-title">Clip any video</h1>
+        <p className="ios-home-sub">
+          Paste a YouTube or Twitch link to trim and save clips directly on your iPhone.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="editorial-hero" aria-label="Cutline overview">
       <div className="editorial-hero-top">

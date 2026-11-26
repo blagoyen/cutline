@@ -535,6 +535,16 @@ async fn probe_youtube(
         (progressive_url.clone(), None)
     };
 
+    let raw_stream = video_url.clone().or(hls_url).or(progressive_url);
+    let proxied_video = raw_stream
+        .as_ref()
+        .and_then(|u| crate::services::stream_proxy::register(u.clone(), Some(IOS_UA.to_string())).ok())
+        .or(raw_stream);
+    let proxied_audio = audio_url
+        .as_ref()
+        .and_then(|u| crate::services::stream_proxy::register(u.clone(), Some(IOS_UA.to_string())).ok())
+        .or_else(|| audio_url.clone());
+
     let chapters: Vec<Chapter> = Vec::new();
     let info = VideoInfo {
         id: video_id.to_string(),
@@ -544,8 +554,8 @@ async fn probe_youtube(
         duration_ms,
         thumbnail,
         webpage_url: canonical_url.to_string(),
-        stream_url: video_url.clone().or(hls_url).or(progressive_url),
-        audio_stream_url: audio_url.clone(),
+        stream_url: proxied_video,
+        audio_stream_url: proxied_audio,
         view_count,
         upload_date: None,
         is_live,
