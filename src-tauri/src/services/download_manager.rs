@@ -947,6 +947,7 @@ impl DownloadManager {
         crate::services::ios_media::export_clip_avfoundation(
             video_url,
             resolved.audio_url,
+            resolved.user_agent,
             sections_json,
             destination.to_string_lossy().into_owned(),
             ext.to_string(),

@@ -12,6 +12,7 @@ interface ClipToolbarProps {
   mergeCuts: boolean;
   clipCount: number;
   busy: boolean;
+  isMobile?: boolean;
   onQuality: (quality: string) => void;
   onFormat: (format: string) => void;
   onPrecise: (precise: boolean) => void;
@@ -29,6 +30,7 @@ export const ClipToolbar = memo(function ClipToolbar({
   mergeCuts,
   clipCount,
   busy,
+  isMobile = false,
   onQuality,
   onFormat,
   onPrecise,
@@ -37,12 +39,13 @@ export const ClipToolbar = memo(function ClipToolbar({
   onExport,
 }: ClipToolbarProps) {
   const canMerge = clipCount > 1;
+  const displayFmt = isMobile && format === "mp3" ? "M4A" : format.toUpperCase();
   const exportLabel =
     clipCount === 0
       ? "EXPORT · NO CUTS"
       : mergeCuts && canMerge
-        ? `EXPORT 1 FILE · ${clipCount} CUTS · ${qualityLabel(quality).toUpperCase()} ${format.toUpperCase()}`
-        : `EXPORT ${clipCount} ${clipCount === 1 ? "CUT" : "CUTS"} · ${qualityLabel(quality).toUpperCase()} ${format.toUpperCase()}`;
+        ? `EXPORT 1 FILE · ${clipCount} CUTS · ${displayFmt}`
+        : `EXPORT ${clipCount} ${clipCount === 1 ? "CUT" : "CUTS"} · ${isMobile ? displayFmt : `${qualityLabel(quality).toUpperCase()} ${displayFmt}`}`;
 
   return (
     <section className="clip-toolbar" aria-label="Export options">
@@ -72,42 +75,46 @@ export const ClipToolbar = memo(function ClipToolbar({
             value={format}
             onChange={(event) => onFormat(event.target.value)}
           >
-            <option value="mp4">MP4 · video</option>
-            <option value="mp3">MP3 / M4A · audio only</option>
+            <option value="mp4">{isMobile ? "MP4 · Video (Photos + Files)" : "MP4 · video"}</option>
+            <option value="mp3">{isMobile ? "M4A · Audio (Files)" : "MP3 / M4A · audio only"}</option>
           </select>
         </label>
 
-        <label className="toolbar-field toolbar-field-template">
-          <span className="field-label">Naming pattern</span>
-          <select
-            className="input input-compact"
-            value={NAMING_TEMPLATES.includes(namingTemplate as (typeof NAMING_TEMPLATES)[number]) ? namingTemplate : NAMING_TEMPLATES[0]}
-            onChange={(event) => onNamingTemplate(event.target.value)}
-          >
-            {NAMING_TEMPLATES.map((template) => (
-              <option key={template} value={template}>
-                {template}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!isMobile ? (
+          <>
+            <label className="toolbar-field toolbar-field-template">
+              <span className="field-label">Naming pattern</span>
+              <select
+                className="input input-compact"
+                value={NAMING_TEMPLATES.includes(namingTemplate as (typeof NAMING_TEMPLATES)[number]) ? namingTemplate : NAMING_TEMPLATES[0]}
+                onChange={(event) => onNamingTemplate(event.target.value)}
+              >
+                {NAMING_TEMPLATES.map((template) => (
+                  <option key={template} value={template}>
+                    {template}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <button
-          type="button"
-          className={`switch-field${precise ? " is-on" : ""}`}
-          role="switch"
-          aria-checked={precise}
-          onClick={() => onPrecise(!precise)}
-          title="Precise cutting re-encodes around the cut points so clips start exactly where marked. Slower, but frame accurate. Fast mode aligns to keyframes."
-        >
-          <span className="switch" aria-hidden="true">
-            <span className="switch-thumb" />
-          </span>
-          <span className="switch-text">
-            Precise cutting
-            <small>{precise ? "Frame accurate · slower" : "Fast · keyframe aligned"}</small>
-          </span>
-        </button>
+            <button
+              type="button"
+              className={`switch-field${precise ? " is-on" : ""}`}
+              role="switch"
+              aria-checked={precise}
+              onClick={() => onPrecise(!precise)}
+              title="Precise cutting re-encodes around the cut points so clips start exactly where marked. Slower, but frame accurate. Fast mode aligns to keyframes."
+            >
+              <span className="switch" aria-hidden="true">
+                <span className="switch-thumb" />
+              </span>
+              <span className="switch-text">
+                Precise cutting
+                <small>{precise ? "Frame accurate · slower" : "Fast · keyframe aligned"}</small>
+              </span>
+            </button>
+          </>
+        ) : null}
       </div>
 
       <div className="toolbar-export">
@@ -134,7 +141,9 @@ export const ClipToolbar = memo(function ClipToolbar({
       </div>
 
       <p className="toolbar-footnote">
-        Selected ranges are downloaded and checked locally.{format === "mp3" ? " Audio is converted to MP3." : ""}
+        {isMobile
+          ? "Clips are trimmed on-device with AVFoundation and saved to Photos & Files → Cutline."
+          : `Selected ranges are downloaded and checked locally.${format === "mp3" ? " Audio is converted to MP3." : ""}`}
       </p>
     </section>
   );

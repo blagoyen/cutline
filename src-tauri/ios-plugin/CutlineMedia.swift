@@ -7,9 +7,6 @@ private struct CutSection: Decodable {
     let endMs: UInt64
 }
 
-private let cutlineIosUserAgent =
-    "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X)"
-
 private func writeError(_ message: String, to buffer: UnsafeMutablePointer<CChar>?, maxLen: Int) {
     guard let buffer = buffer, maxLen > 1 else { return }
     let bytes = Array(message.utf8.prefix(maxLen - 1))
@@ -19,18 +16,21 @@ private func writeError(_ message: String, to buffer: UnsafeMutablePointer<CChar
     buffer[bytes.count] = 0
 }
 
-private func makeAsset(url: URL) -> AVURLAsset {
-    let headers = ["User-Agent": cutlineIosUserAgent]
-    return AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+private func makeAsset(url: URL, userAgent: String) -> AVURLAsset {
+    if userAgent.isEmpty {
+        return AVURLAsset(url: url)
+    }
+    return AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": userAgent]])
 }
 
 /// Hardware-accelerated on-device trim & multi-cut merge using iOS AVFoundation.
-/// Supports both muxed streams (Twitch HLS / MP4) and dual-track adaptive streams
-/// (YouTube H.264 video + AAC audio).
+/// Supports progressive MP4, Twitch HLS `.m3u8`, and dual-track compositions,
+/// saving outputs to Files (Documents/Cutline) and Photos (Camera Roll).
 @_cdecl("cutline_ios_export_clip")
 public func cutline_ios_export_clip(
     _ videoUrlPtr: UnsafePointer<CChar>?,
     _ audioUrlPtr: UnsafePointer<CChar>?,
+    _ userAgentPtr: UnsafePointer<CChar>?,
     _ sectionsJsonPtr: UnsafePointer<CChar>?,
     _ outputPathPtr: UnsafePointer<CChar>?,
     _ formatPtr: UnsafePointer<CChar>?,
@@ -50,6 +50,7 @@ public func cutline_ios_export_clip(
 
     let videoUrlStr = String(cString: videoUrlPtr)
     let audioUrlStr = audioUrlPtr.map { String(cString: $0) } ?? ""
+    let userAgent = userAgentPtr.map { String(cString: $0) } ?? ""
     let sectionsJson = String(cString: sectionsJsonPtr)
     let outputPath = String(cString: outputPathPtr)
     let format = String(cString: formatPtr).lowercased()
@@ -75,8 +76,8 @@ public func cutline_ios_export_clip(
     }
 
     let audioOnly = (format == "mp3" || format == "m4a")
-    let videoAsset = makeAsset(url: videoURL)
-    let audioAsset = audioURL.map { makeAsset(url: $0) } ?? videoAsset
+    let videoAsset = makeAsset(url: videoURL, userAgent: userAgent)
+    let audioAsset = audioURL.map { makeAsset(url: $0, userAgent: userAgent) } ?? videoAsset
     let composition = AVMutableComposition()
 
     let sem = DispatchSemaphore(value: 0)
@@ -112,8 +113,10 @@ public func cutline_ios_export_clip(
                 cursor = CMTimeAdd(cursor, range.duration)
             }
 
-            let preset = audioOnly ? AVAssetExportPresetAppleM4A : AVAssetExportPresetHighestQuality
-            guard let exporter = AVAssetExportSession(asset: composition, presetName: preset) else {
+            let preferredPreset = audioOnly
+                ? AVAssetExportPresetAppleM4A
+                : AVAssetExportPresetHighestQuality
+            guard let exporter = AVAssetExportSession(asset: composition, presetName: preferredPreset) else {
                 errorMessage = "Could not initialize AVAssetExportSession."
                 exitCode = 4
                 sem.signal()

@@ -18,6 +18,7 @@ interface SettingsPanelProps {
   settings: Settings;
   dependencies: DependencyReport | null;
   version: string;
+  isMobile?: boolean;
   onClose: () => void;
   onSave: (next: Settings) => Promise<void>;
   onRefreshDependencies: () => Promise<DependencyReport | null>;
@@ -92,6 +93,7 @@ export const SettingsPanel = memo(function SettingsPanel({
   settings,
   dependencies,
   version,
+  isMobile = false,
   onClose,
   onSave,
   onRefreshDependencies,
@@ -310,6 +312,108 @@ export const SettingsPanel = memo(function SettingsPanel({
       setSaving(false);
     }
   };
+
+  if (isMobile) {
+    return (
+      <div className="drawer-root">
+        <div className="drawer-overlay" onClick={onClose} />
+        <aside className="drawer" role="dialog" aria-modal="true" aria-label="Settings">
+          <header className="drawer-head">
+            <div>
+              <span className="eyebrow eyebrow-sm">iOS</span>
+              <h2 className="drawer-title">Settings</h2>
+            </div>
+            <button type="button" className="icon-btn" onClick={onClose} aria-label="Close settings">
+              <X size={16} strokeWidth={1.9} />
+            </button>
+          </header>
+
+          <div className="drawer-body">
+            <section className="drawer-section">
+              <h3 className="drawer-section-title">Export</h3>
+              <div className="field field-inline">
+                <div>
+                  <span className="field-label">Default format</span>
+                  <p className="field-hint">MP4 saves to Photos &amp; Files. M4A saves to Files.</p>
+                </div>
+                <select
+                  className="input input-compact"
+                  value={draft.defaultFormat}
+                  onChange={(event) => patch({ defaultFormat: event.target.value })}
+                >
+                  <option value="mp4">MP4 Video</option>
+                  <option value="mp3">M4A Audio</option>
+                </select>
+              </div>
+
+              <div className="field field-inline">
+                <div>
+                  <span className="field-label">Merge cuts by default</span>
+                  <p className="field-hint">Combine multiple clips into one file.</p>
+                </div>
+                <button
+                  type="button"
+                  className={`switch${draft.mergeCuts ? " is-on" : ""}`}
+                  role="switch"
+                  aria-checked={draft.mergeCuts}
+                  onClick={() => patch({ mergeCuts: !draft.mergeCuts })}
+                >
+                  <span className="switch-thumb" />
+                </button>
+              </div>
+
+              <div className="field field-inline">
+                <div>
+                  <span className="field-label">Interface sounds</span>
+                  <p className="field-hint">Subtle feedback on mark in/out and export.</p>
+                </div>
+                <button
+                  type="button"
+                  className={`switch${draft.soundEffects ? " is-on" : ""}`}
+                  role="switch"
+                  aria-checked={draft.soundEffects}
+                  onClick={() => patch({ soundEffects: !draft.soundEffects })}
+                >
+                  <span className="switch-thumb" />
+                </button>
+              </div>
+            </section>
+
+            <section className="drawer-section">
+              <h3 className="drawer-section-title">Storage &amp; Engine</h3>
+              <div className="about-row">
+                <span>Saved location</span>
+                <b>Photos &amp; Files → Cutline</b>
+              </div>
+              <div className="about-row">
+                <span>Media engine</span>
+                <b>AVFoundation (On-Device)</b>
+              </div>
+              <div className="about-row">
+                <span>Version</span>
+                <b>{version || "2.5.0"}</b>
+              </div>
+            </section>
+          </div>
+
+          <footer className="drawer-foot">
+            {error ? <p className="error-text">{error}</p> : null}
+            <div className="drawer-foot-actions">
+              <div className="drawer-foot-buttons">
+                <button type="button" className="btn btn-ghost" onClick={onClose}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => void save()} disabled={saving}>
+                  {saving ? <Loader2 className="spin" size={14} /> : <Check size={14} />}
+                  Save
+                </button>
+              </div>
+            </div>
+          </footer>
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <div className="drawer-root">

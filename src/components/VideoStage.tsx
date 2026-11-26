@@ -476,7 +476,7 @@ export const VideoStage = memo(function VideoStage({
                   type="button"
                   className={`deck-chip${pendingIn != null ? " is-set" : ""}`}
                   onClick={onMarkIn}
-                  disabled={!player.ready}
+                  disabled={!video}
                   title="Set mark in at the playhead [I]"
                 >
                   In {pendingIn != null ? <b>{formatShortTimecode(pendingIn)}</b> : <kbd>I</kbd>}
@@ -485,7 +485,7 @@ export const VideoStage = memo(function VideoStage({
                   type="button"
                   className={`deck-chip${pendingOut != null ? " is-set" : ""}`}
                   onClick={onMarkOut}
-                  disabled={!player.ready}
+                  disabled={!video}
                   title="Set mark out at the playhead [O]"
                 >
                   Out {pendingOut != null ? <b>{formatShortTimecode(pendingOut)}</b> : <kbd>O</kbd>}

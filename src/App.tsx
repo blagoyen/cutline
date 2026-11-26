@@ -471,11 +471,11 @@ export default function App() {
   });
 
   const ensureToolsReady = useCallback(() => {
-    if (dependencies?.ready) return true;
+    if (isMobile || dependencies?.ready) return true;
     toast("yt-dlp and FFmpeg are required. Set them up in Settings.", "error");
     setSettingsOpen(true);
     return false;
-  }, [dependencies, toast]);
+  }, [isMobile, dependencies, toast]);
 
   const buildRequest = useCallback(
     (clip: Clip, index = 0): DownloadRequest => {
@@ -864,6 +864,7 @@ export default function App() {
               mergeCuts={mergeCuts}
               clipCount={clips.length}
               busy={exporting}
+              isMobile={isMobile}
               onQuality={changeQuality}
               onFormat={changeFormat}
               onPrecise={changePrecise}
@@ -944,6 +945,7 @@ export default function App() {
             settings={settings}
             dependencies={dependencies}
             version={version}
+            isMobile={isMobile}
             onClose={closeSettings}
             onSave={handleSaveSettings}
             onRefreshDependencies={refreshDependencies}

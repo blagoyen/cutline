@@ -327,7 +327,7 @@ pub async fn install_missing(settings: &Settings) -> CmdResult<DependencyReport>
 
     let http = reqwest::Client::builder()
         .timeout(Duration::from_secs(300))
-        .user_agent("Cutline-Installer/2.4.1")
+        .user_agent("Cutline-Installer/2.5.0")
         .build()
         .map_err(|err| {
             CommandError::new("HTTP_CLIENT_FAILED", "Could not initialize the downloader.")

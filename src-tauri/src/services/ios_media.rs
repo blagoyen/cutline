@@ -16,6 +16,7 @@ pub struct ResolvedIosMedia {
     pub info: VideoInfo,
     pub video_url: Option<String>,
     pub audio_url: Option<String>,
+    pub user_agent: Option<String>,
 }
 
 /// On iOS, cutting and extraction run 100% in-process (AVFoundation + Rust HTTP),
@@ -74,6 +75,7 @@ pub async fn probe_with_streams(
             info,
             video_url,
             audio_url: None,
+            user_agent: None,
         })
     } else if lower.contains("clips.twitch.tv/") || lower.contains("/clip/") {
         let slug = canonical_url
@@ -88,6 +90,7 @@ pub async fn probe_with_streams(
             info,
             video_url,
             audio_url: None,
+            user_agent: None,
         })
     } else {
         let id = extract_youtube_id(canonical_url)
@@ -566,12 +569,16 @@ async fn probe_youtube(
     };
     let chosen_audio = aac_audios.first().map(|(_, u)| u.clone());
 
+    // iOS AVURLAsset requires progressive `ftypmp42` MP4 (itag 18) or HLS `.m3u8`
+    // because Apple CoreMedia rejects raw DASH `ftypdash` adaptive MP4 over HTTP.
     let (video_url, audio_url) = if let Some(hls) = hls_url.clone() {
         (Some(hls), None)
+    } else if let Some(prog) = progressive_url.clone() {
+        (Some(prog), None)
     } else if let (Some(v), Some(a)) = (chosen_video, chosen_audio) {
         (Some(v), Some(a))
     } else {
-        (progressive_url.clone(), None)
+        (None, None)
     };
 
     // For WKWebView preview: ALWAYS prefer progressive MP4 (`ftypmp42`, muxed video+audio)
@@ -629,6 +636,7 @@ async fn probe_youtube(
         info,
         video_url,
         audio_url,
+        user_agent: Some(matched_ua.to_string()),
     })
 }
 
@@ -667,6 +675,7 @@ extern "C" {
     fn cutline_ios_export_clip(
         video_url: *const std::os::raw::c_char,
         audio_url: *const std::os::raw::c_char,
+        user_agent: *const std::os::raw::c_char,
         sections_json: *const std::os::raw::c_char,
         output_path: *const std::os::raw::c_char,
         format: *const std::os::raw::c_char,
@@ -680,6 +689,7 @@ extern "C" {
 pub async fn export_clip_avfoundation(
     video_url: String,
     audio_url: Option<String>,
+    user_agent: Option<String>,
     sections_json: String,
     output_path: String,
     format: String,
@@ -691,6 +701,8 @@ pub async fn export_clip_avfoundation(
         let c_vurl = CString::new(video_url)
             .map_err(|e| CommandError::new("INVALID_ARG", e.to_string()))?;
         let c_aurl = CString::new(audio_url.unwrap_or_default())
+            .map_err(|e| CommandError::new("INVALID_ARG", e.to_string()))?;
+        let c_ua = CString::new(user_agent.unwrap_or_default())
             .map_err(|e| CommandError::new("INVALID_ARG", e.to_string()))?;
         let c_sec = CString::new(sections_json)
             .map_err(|e| CommandError::new("INVALID_ARG", e.to_string()))?;
@@ -704,6 +716,7 @@ pub async fn export_clip_avfoundation(
             cutline_ios_export_clip(
                 c_vurl.as_ptr(),
                 c_aurl.as_ptr(),
+                c_ua.as_ptr(),
                 c_sec.as_ptr(),
                 c_out.as_ptr(),
                 c_fmt.as_ptr(),
