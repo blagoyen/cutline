@@ -57,7 +57,7 @@ pub struct ProviderInstall {
 fn client() -> CmdResult<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(300))
-        .user_agent("Cutline-Updater/2.4.0")
+        .user_agent("Cutline-Updater/2.4.1")
         .build()
         .map_err(|err| CommandError::new("HTTP_CLIENT_FAILED", "Could not start the provider installer.").with_detail(err.to_string()))
 }

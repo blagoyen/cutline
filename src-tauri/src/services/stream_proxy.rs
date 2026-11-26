@@ -62,10 +62,10 @@ fn ensure_started() -> Result<&'static ProxyServer, String> {
         .ok_or_else(|| "Proxy server failed to initialize".to_string())
 }
 
-/// Register an upstream media URL and return a `http://127.0.0.1:<port>/s/<id>` URL
+/// Register an upstream media URL and return a `http://127.0.0.1:<port>/s/<id>.mp4` URL
 /// that WKWebView `<video>` / `<audio>` can stream and scrub with proper headers.
 #[allow(dead_code)]
-pub fn register(url: String, user_agent: Option<String>) -> Result<String, String> {
+pub fn register(url: String, user_agent: Option<String>, ext: &str) -> Result<String, String> {
     let server = ensure_started()?;
     let id = uuid::Uuid::new_v4().simple().to_string();
     {
@@ -76,7 +76,8 @@ pub fn register(url: String, user_agent: Option<String>) -> Result<String, Strin
         }
         map.insert(id.clone(), UpstreamEntry { url, user_agent });
     }
-    Ok(format!("http://127.0.0.1:{}/s/{}", server.port, id))
+    let clean_ext = ext.trim_start_matches('.');
+    Ok(format!("http://127.0.0.1:{}/s/{}.{}", server.port, id, clean_ext))
 }
 
 async fn handle_connection(
@@ -119,6 +120,7 @@ async fn handle_connection(
     let id = raw_path
         .strip_prefix("/s/")
         .and_then(|s| s.split('?').next())
+        .and_then(|s| s.split('.').next())
         .unwrap_or("");
 
     let entry = {

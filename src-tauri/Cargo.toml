@@ -1,6 +1,6 @@
 [package]
 name = "cutline"
-version = "2.4.0"
+version = "2.4.1"
 description = "Cut YouTube videos and Twitch VODs into clips, locally."
 authors = ["Cutline"]
 edition = "2021"

@@ -5,6 +5,8 @@ use crate::models::video::{Chapter, FormatInfo, VideoInfo, VideoSource};
 use crate::services::binaries::{DependencyInfo, DependencyReport};
 
 const TWITCH_CLIENT_ID: &str = "kimne78kx3ncx6brgo4mv6wki5h1ko";
+const ANDROID_CLIENT_VERSION: &str = "20.10.38";
+const ANDROID_UA: &str = "com.google.android.youtube/20.10.38 (Linux; U; Android 15) gzip";
 const IOS_CLIENT_VERSION: &str = "20.10.4";
 const IOS_UA: &str =
     "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X)";
@@ -352,10 +354,28 @@ async fn probe_youtube(
     let client = http_client()?;
     let target_height = quality.trim_end_matches('p').parse::<u32>().ok();
 
-    let body = json!({
-        "videoId": video_id,
-        "context": {
-            "client": {
+    // Try ANDROID first because it returns progressive `ftypmp42` MP4 (`itag 18`)
+    // which plays natively inside iOS WKWebView <video> (unlike `ftypdash`), AND
+    // also returns high-res H.264 + AAC adaptive formats for AVFoundation export.
+    // Fall back to IOS client if ANDROID is rejected.
+    let attempts = [
+        (
+            ANDROID_UA,
+            "3",
+            ANDROID_CLIENT_VERSION,
+            json!({
+                "clientName": "ANDROID",
+                "clientVersion": ANDROID_CLIENT_VERSION,
+                "androidSdkVersion": 35,
+                "hl": "en",
+                "gl": "US"
+            }),
+        ),
+        (
+            IOS_UA,
+            "5",
+            IOS_CLIENT_VERSION,
+            json!({
                 "clientName": "IOS",
                 "clientVersion": IOS_CLIENT_VERSION,
                 "deviceMake": "Apple",
@@ -364,50 +384,69 @@ async fn probe_youtube(
                 "osVersion": "18.3.2.22D82",
                 "hl": "en",
                 "gl": "US"
-            }
-        },
-        "contentCheckOk": true,
-        "racyCheckOk": true
-    });
+            }),
+        ),
+    ];
 
-    let resp = client
-        .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
-        .header("User-Agent", IOS_UA)
-        .header("X-YouTube-Client-Name", "5")
-        .header("X-YouTube-Client-Version", IOS_CLIENT_VERSION)
-        .header("Origin", "https://www.youtube.com")
-        .json(&body)
-        .send()
-        .await
-        .map_err(|err| {
-            CommandError::new("YOUTUBE_NETWORK_ERROR", "Could not reach YouTube.")
-                .with_detail(err.to_string())
-        })?;
+    let mut chosen_payload: Option<(Value, &str)> = None;
+    let mut last_error = CommandError::new(
+        "YOUTUBE_UNPLAYABLE",
+        "This YouTube video is not playable on-device.",
+    );
 
-    let status_code = resp.status();
-    if !status_code.is_success() {
-        return Err(CommandError::new(
-            "YOUTUBE_HTTP_ERROR",
-            format!("YouTube returned HTTP {}.", status_code.as_u16()),
-        ));
-    }
+    for (ua, client_id, client_ver, client_ctx) in attempts {
+        let body = json!({
+            "videoId": video_id,
+            "context": { "client": client_ctx },
+            "contentCheckOk": true,
+            "racyCheckOk": true
+        });
 
-    let payload: Value = resp.json().await.map_err(|err| {
-        CommandError::new("YOUTUBE_PARSE_ERROR", "Could not parse YouTube response.")
-            .with_detail(err.to_string())
-    })?;
+        let Ok(resp) = client
+            .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
+            .header("User-Agent", ua)
+            .header("X-YouTube-Client-Name", client_id)
+            .header("X-YouTube-Client-Version", client_ver)
+            .header("Origin", "https://www.youtube.com")
+            .json(&body)
+            .send()
+            .await
+        else {
+            last_error = CommandError::new("YOUTUBE_NETWORK_ERROR", "Could not reach YouTube.");
+            continue;
+        };
 
-    let status = payload
-        .pointer("/playabilityStatus/status")
-        .and_then(|v| v.as_str())
-        .unwrap_or("ERROR");
-    if status != "OK" {
+        if !resp.status().is_success() {
+            last_error = CommandError::new(
+                "YOUTUBE_HTTP_ERROR",
+                format!("YouTube returned HTTP {}.", resp.status().as_u16()),
+            );
+            continue;
+        }
+
+        let Ok(payload) = resp.json::<Value>().await else {
+            last_error =
+                CommandError::new("YOUTUBE_PARSE_ERROR", "Could not parse YouTube response.");
+            continue;
+        };
+
+        let status = payload
+            .pointer("/playabilityStatus/status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("ERROR");
+        if status == "OK" {
+            chosen_payload = Some((payload, ua));
+            break;
+        }
+
         let reason = payload
             .pointer("/playabilityStatus/reason")
             .and_then(|v| v.as_str())
             .unwrap_or("This YouTube video is not playable on-device.");
-        return Err(CommandError::new("YOUTUBE_UNPLAYABLE", reason));
+        last_error = CommandError::new("YOUTUBE_UNPLAYABLE", reason);
     }
+
+    let (payload, matched_ua) = chosen_payload.ok_or(last_error)?;
 
     let details = payload.get("videoDetails").cloned().unwrap_or(Value::Null);
     let title = details
@@ -535,15 +574,36 @@ async fn probe_youtube(
         (progressive_url.clone(), None)
     };
 
-    let raw_stream = video_url.clone().or(hls_url).or(progressive_url);
-    let proxied_video = raw_stream
+    // For WKWebView preview: ALWAYS prefer progressive MP4 (`ftypmp42`, muxed video+audio)
+    // or HLS, because iOS CoreMedia rejects raw `ftypdash` adaptive MP4 files.
+    let preview_is_muxed = progressive_url.is_some() || hls_url.is_some();
+    let raw_preview = progressive_url
+        .clone()
+        .or(hls_url.clone())
+        .or(video_url.clone());
+    let proxied_video = raw_preview
         .as_ref()
-        .and_then(|u| crate::services::stream_proxy::register(u.clone(), Some(IOS_UA.to_string())).ok())
-        .or(raw_stream);
-    let proxied_audio = audio_url
-        .as_ref()
-        .and_then(|u| crate::services::stream_proxy::register(u.clone(), Some(IOS_UA.to_string())).ok())
-        .or_else(|| audio_url.clone());
+        .and_then(|u| {
+            let ext = if u.contains("m3u8") { "m3u8" } else { "mp4" };
+            crate::services::stream_proxy::register(u.clone(), Some(matched_ua.to_string()), ext)
+                .ok()
+        })
+        .or(raw_preview);
+    let proxied_audio = if preview_is_muxed {
+        None
+    } else {
+        audio_url
+            .as_ref()
+            .and_then(|u| {
+                crate::services::stream_proxy::register(
+                    u.clone(),
+                    Some(matched_ua.to_string()),
+                    "m4a",
+                )
+                .ok()
+            })
+            .or_else(|| audio_url.clone())
+    };
 
     let chapters: Vec<Chapter> = Vec::new();
     let info = VideoInfo {

@@ -370,7 +370,7 @@
     font-size: 12px;
   }
 
-  .deck-group-play {
+  .deck-group-left {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -392,14 +392,14 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .deck-group-mark {
+  .deck-group-right {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     width: 100%;
   }
 
-  .deck-group-mark .deck-add {
+  .deck-group-right .deck-add {
     grid-column: 1 / -1;
     width: 100%;
     justify-content: center;
@@ -408,7 +408,7 @@
     font-size: 12px;
   }
 
-  .deck-group-mark .deck-fullscreen {
+  .deck-group-right .deck-fullscreen {
     display: none;
   }
 

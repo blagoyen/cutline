@@ -321,11 +321,12 @@ export function useMediaPlayer(
       const onError = () => {
         if (disposed) return;
         window.clearTimeout(readyTimer);
+        const code = video.error?.code;
         applyState({
           ready: false,
           playing: false,
           buffering: false,
-          error: "Could not load the direct stream preview. Clip downloads still work.",
+          error: `Could not load the stream preview${code ? ` (code ${code})` : ""}. Clip downloads still work.`,
         });
       };
 
