@@ -2,6 +2,7 @@ use serde_json::Value;
 
 use crate::error::CommandError;
 use crate::models::video::{Chapter, FormatInfo, VideoInfo, VideoSource};
+use crate::services::stream_proxy;
 
 fn as_str(value: &Value, key: &str) -> Option<String> {
     value
@@ -126,37 +127,113 @@ fn parse_chapters(value: &Value, duration_ms: u64) -> Vec<Chapter> {
     chapters
 }
 
+fn header_from(value: &Value, name: &str) -> Option<String> {
+    let headers = value.get("http_headers")?.as_object()?;
+    for (k, v) in headers {
+        if k.eq_ignore_ascii_case(name) {
+            if let Some(s) = v.as_str().filter(|s| !s.is_empty()) {
+                return Some(s.to_string());
+            }
+        }
+    }
+    None
+}
+
 fn pick_stream_url(value: &Value, source: VideoSource) -> Option<String> {
-    if source != VideoSource::Twitch {
+    if !matches!(source, VideoSource::Twitch | VideoSource::Tiktok) {
         return None;
     }
+
+    let mut chosen_url: Option<String> = None;
+    let mut chosen_ext = "mp4".to_string();
+    let mut chosen_headers_src: &Value = value;
+
     if let Some(formats) = value.get("formats").and_then(|v| v.as_array()) {
-        // Prefer a crisp 720p-1080p muxed HLS/MP4 stream for fast preview scrubbing.
-        let mut best_preview: Option<(u32, String)> = None;
-        let mut best_any: Option<(u32, String)> = None;
+        // Prefer a crisp <=1080p muxed MP4/HLS stream for fast preview scrubbing.
+        // For TikTok, prefer non-watermarked formats (format_id without "watermark" and not "-0" if others exist).
+        let mut best_preview: Option<(i32, u32, String, String, &Value)> = None;
+        let mut best_any: Option<(i32, u32, String, String, &Value)> = None;
+        let mut best_audio: Option<(String, String, &Value)> = None;
+
         for fmt in formats {
             let Some(url) = as_str(fmt, "url") else {
                 continue;
             };
+            let ext = as_str(fmt, "ext").unwrap_or_else(|| "mp4".into());
             let vcodec = as_str(fmt, "vcodec").unwrap_or_default();
             if vcodec == "none" {
+                if source == VideoSource::Tiktok && best_audio.is_none() {
+                    best_audio = Some((url, ext, fmt));
+                }
                 continue;
             }
             let height = as_u64(fmt, "height").map(|h| h as u32).unwrap_or(0);
-            if height > 0 && height <= 1080 {
-                if best_preview.as_ref().map(|(h, _)| height >= *h).unwrap_or(true) {
-                    best_preview = Some((height, url.clone()));
+            let fmt_id = as_str(fmt, "format_id").unwrap_or_default().to_lowercase();
+            let note = as_str(fmt, "format_note").unwrap_or_default().to_lowercase();
+            let mut score: i32 = 0;
+            if ext.eq_ignore_ascii_case("mp4") {
+                score += 10;
+            }
+            if source == VideoSource::Tiktok {
+                if fmt_id.contains("watermark") || note.contains("watermark") {
+                    score -= 20;
+                }
+                if as_str(fmt, "acodec").as_deref() != Some("none") {
+                    score += 15;
                 }
             }
-            if best_any.as_ref().map(|(h, _)| height >= *h).unwrap_or(true) {
-                best_any = Some((height, url));
+            if height > 0 && height <= 1080 {
+                if best_preview
+                    .as_ref()
+                    .map(|(s, h, _, _, _)| (score, height) >= (*s, *h))
+                    .unwrap_or(true)
+                {
+                    best_preview = Some((score, height, url.clone(), ext.clone(), fmt));
+                }
+            }
+            if best_any
+                .as_ref()
+                .map(|(s, h, _, _, _)| (score, height) >= (*s, *h))
+                .unwrap_or(true)
+            {
+                best_any = Some((score, height, url, ext, fmt));
             }
         }
-        if let Some((_, url)) = best_preview.or(best_any) {
-            return Some(url);
+        if let Some((_, _, url, ext, fmt)) = best_preview.or(best_any) {
+            chosen_url = Some(url);
+            chosen_ext = ext;
+            chosen_headers_src = fmt;
+        } else if let Some((url, ext, fmt)) = best_audio {
+            chosen_url = Some(url);
+            chosen_ext = ext;
+            chosen_headers_src = fmt;
         }
     }
-    as_str(value, "url")
+
+    if chosen_url.is_none() {
+        chosen_url = as_str(value, "url");
+        if let Some(ext) = as_str(value, "ext") {
+            chosen_ext = ext;
+        }
+    }
+
+    let raw_url = chosen_url?;
+    if source == VideoSource::Tiktok {
+        let ua = header_from(chosen_headers_src, "User-Agent")
+            .or_else(|| header_from(value, "User-Agent"))
+            .or_else(|| Some(crate::services::tiktok::TIKTOK_USER_AGENT.to_string()));
+        let referer = header_from(chosen_headers_src, "Referer")
+            .or_else(|| header_from(value, "Referer"))
+            .or_else(|| Some(crate::services::tiktok::TIKTOK_REFERER.to_string()));
+        let cookie = header_from(chosen_headers_src, "Cookie")
+            .or_else(|| header_from(value, "Cookie"));
+        if let Ok(proxied) =
+            stream_proxy::register_with_headers(raw_url.clone(), ua, referer, cookie, &chosen_ext)
+        {
+            return Some(proxied);
+        }
+    }
+    Some(raw_url)
 }
 
 /// Convert `yt-dlp -J` output into UI video info.
@@ -205,8 +282,11 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
         .or_else(|| as_str(target, "extractor"))
         .unwrap_or_default()
         .to_lowercase();
-    let source = if extractor.contains("twitch") || webpage_url.to_lowercase().contains("twitch.tv") {
+    let lower_url = webpage_url.to_lowercase();
+    let source = if extractor.contains("twitch") || lower_url.contains("twitch.tv") {
         VideoSource::Twitch
+    } else if extractor.contains("tiktok") || lower_url.contains("tiktok.com") {
+        VideoSource::Tiktok
     } else {
         VideoSource::Youtube
     };
@@ -223,9 +303,11 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
 
     let title = as_str(target, "title")
         .or_else(|| as_str(target, "fulltitle"))
+        .or_else(|| as_str(target, "track"))
         .unwrap_or_else(|| "Untitled video".to_string());
 
     let stream_url = pick_stream_url(target, source);
+    let audio_only = source == VideoSource::Tiktok && heights.is_empty();
 
     Ok(VideoInfo {
         id: clean_id,
@@ -235,10 +317,12 @@ pub fn parse_video_info(value: &Value) -> Result<VideoInfo, CommandError> {
         thumbnail: thumbnail_of(target).unwrap_or_default(),
         uploader: as_str(target, "uploader")
             .or_else(|| as_str(target, "channel"))
-            .or_else(|| as_str(target, "creator")),
+            .or_else(|| as_str(target, "creator"))
+            .or_else(|| as_str(target, "artist")),
         webpage_url,
         stream_url,
         audio_stream_url: None,
+        audio_only,
         is_live,
         max_height,
         heights,

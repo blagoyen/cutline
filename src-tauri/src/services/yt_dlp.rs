@@ -20,10 +20,17 @@ const YOUTUBE_HOSTS: [&str; 6] = [
 
 const TWITCH_HOSTS: [&str; 3] = ["twitch.tv", "m.twitch.tv", "clips.twitch.tv"];
 
+const TIKTOK_HOSTS: [&str; 4] = [
+    "tiktok.com",
+    "m.tiktok.com",
+    "vm.tiktok.com",
+    "vt.tiktok.com",
+];
+
 fn invalid_url() -> CommandError {
     CommandError::new(
         "INVALID_URL",
-        "Paste a supported YouTube video link or Twitch VOD / clip link.",
+        "Paste a supported YouTube, Twitch, or TikTok video / sound link.",
     )
 }
 
@@ -47,20 +54,23 @@ fn looks_like_twitch_clip_slug(value: &str) -> bool {
 }
 
 pub fn detect_source(url: &str) -> VideoSource {
-    if url.to_ascii_lowercase().contains("twitch.tv") {
+    let lower = url.to_ascii_lowercase();
+    if lower.contains("twitch.tv") {
         VideoSource::Twitch
+    } else if lower.contains("tiktok.com") {
+        VideoSource::Tiktok
     } else {
         VideoSource::Youtube
     }
 }
 
-/// Validate a YouTube or Twitch VOD/clip link and return the canonical URL plus video id.
+/// Validate a YouTube, Twitch VOD/clip, or TikTok video/sound link and return the canonical URL plus id.
 pub fn canonicalize(raw: &str) -> Result<(String, String), CommandError> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Err(CommandError::new(
             "EMPTY_URL",
-            "Paste a YouTube or Twitch link first.",
+            "Paste a YouTube, Twitch, or TikTok link first.",
         ));
     }
 
@@ -161,6 +171,104 @@ pub fn canonicalize(raw: &str) -> Result<(String, String), CommandError> {
         ));
     }
 
+    if TIKTOK_HOSTS.contains(&host.as_str()) {
+        // Short share links: vm.tiktok.com/<code>, vt.tiktok.com/<code>
+        if host == "vm.tiktok.com" || host == "vt.tiktok.com" {
+            let code = segments
+                .first()
+                .copied()
+                .filter(|s| s.len() >= 4 && s.len() <= 64)
+                .ok_or_else(invalid_url)?;
+            return Ok((format!("https://{host}/{code}/"), code.to_string()));
+        }
+
+        // Short share links: tiktok.com/t/<code>
+        if segments.first().copied() == Some("t") {
+            let code = segments
+                .get(1)
+                .copied()
+                .filter(|s| s.len() >= 4 && s.len() <= 64)
+                .ok_or_else(invalid_url)?;
+            return Ok((format!("https://www.tiktok.com/t/{code}/"), code.to_string()));
+        }
+
+        // TikTok Sound / Music page: tiktok.com/music/<slug-id>
+        if segments.first().copied() == Some("music") {
+            let slug = segments
+                .get(1)
+                .copied()
+                .filter(|s| !s.is_empty() && s.len() <= 200)
+                .ok_or_else(invalid_url)?;
+            let id = slug
+                .rsplit('-')
+                .next()
+                .filter(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit()))
+                .unwrap_or(slug);
+            return Ok((
+                format!("https://www.tiktok.com/music/{slug}"),
+                id.to_string(),
+            ));
+        }
+
+        // Mobile link: m.tiktok.com/v/<id>.html or tiktok.com/v/<id>
+        if segments.first().copied() == Some("v") {
+            let raw_id = segments
+                .get(1)
+                .copied()
+                .map(|s| s.trim_end_matches(".html"))
+                .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()))
+                .ok_or_else(invalid_url)?;
+            return Ok((
+                format!("https://www.tiktok.com/video/{raw_id}"),
+                raw_id.to_string(),
+            ));
+        }
+
+        // Direct video/photo/embed links: tiktok.com/@user/video/<id>, tiktok.com/@user/photo/<id>, tiktok.com/video/<id>
+        if matches!(segments.first().copied(), Some("video") | Some("photo")) {
+            let id = segments
+                .get(1)
+                .copied()
+                .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()))
+                .ok_or_else(invalid_url)?;
+            return Ok((
+                format!("https://www.tiktok.com/video/{id}"),
+                id.to_string(),
+            ));
+        }
+
+        if matches!(segments.get(1).copied(), Some("video") | Some("photo")) {
+            let user = segments.first().copied().ok_or_else(invalid_url)?;
+            let kind = segments[1];
+            let id = segments
+                .get(2)
+                .copied()
+                .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()))
+                .ok_or_else(invalid_url)?;
+            return Ok((
+                format!("https://www.tiktok.com/{user}/{kind}/{id}"),
+                id.to_string(),
+            ));
+        }
+
+        if segments.first().copied() == Some("embed") {
+            let id = segments
+                .last()
+                .copied()
+                .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()))
+                .ok_or_else(invalid_url)?;
+            return Ok((
+                format!("https://www.tiktok.com/video/{id}"),
+                id.to_string(),
+            ));
+        }
+
+        return Err(CommandError::new(
+            "INVALID_URL",
+            "Paste a TikTok video link (tiktok.com/@user/video/...), short link (vm.tiktok.com/...), or TikTok sound link (tiktok.com/music/...).",
+        ));
+    }
+
     if !YOUTUBE_HOSTS.contains(&host.as_str())
         && !YOUTUBE_HOSTS.contains(&format!("www.{}", host).as_str())
         && host != "www.youtu.be"
@@ -233,6 +341,37 @@ mod tests {
         assert_eq!(id, "AwkwardHelplessSalamanderSwiftRage");
 
         assert!(canonicalize("https://www.twitch.tv/somechannel").is_err());
+    }
+
+    #[test]
+    fn accepts_tiktok_video_short_and_sound_links() {
+        let (url, id) =
+            canonicalize("https://www.tiktok.com/@tokyodrift/video/7348910293847199?is_from_webapp=1")
+                .unwrap();
+        assert_eq!(url, "https://www.tiktok.com/@tokyodrift/video/7348910293847199");
+        assert_eq!(id, "7348910293847199");
+        assert_eq!(detect_source(&url), VideoSource::Tiktok);
+
+        let (url, id) =
+            canonicalize("https://www.tiktok.com/music/Original-Sound-7348910293847102?lang=en")
+                .unwrap();
+        assert_eq!(url, "https://www.tiktok.com/music/Original-Sound-7348910293847102");
+        assert_eq!(id, "7348910293847102");
+        assert!(crate::services::tiktok::is_tiktok_sound_url(&url));
+
+        let (url, id) = canonicalize("https://vm.tiktok.com/ZM8abc123/").unwrap();
+        assert_eq!(url, "https://vm.tiktok.com/ZM8abc123/");
+        assert_eq!(id, "ZM8abc123");
+
+        let (url, id) = canonicalize("https://www.tiktok.com/t/ZTR123abc/").unwrap();
+        assert_eq!(url, "https://www.tiktok.com/t/ZTR123abc/");
+        assert_eq!(id, "ZTR123abc");
+
+        let (url, id) = canonicalize("https://m.tiktok.com/v/7348910293847199.html").unwrap();
+        assert_eq!(url, "https://www.tiktok.com/video/7348910293847199");
+        assert_eq!(id, "7348910293847199");
+
+        assert!(canonicalize("https://www.tiktok.com/@someuser").is_err());
     }
 
     #[test]
@@ -655,11 +794,18 @@ pub fn map_error_for_settings(
     error
 }
 
-/// Fetch full metadata through `yt-dlp -J --no-playlist`.
+/// Fetch full metadata through `yt-dlp -J --no-playlist` (or native TikTok sound extraction for `/music/` URLs).
 pub async fn fetch_metadata(
     url: &str,
     settings: &Settings,
 ) -> Result<VideoInfo, CommandError> {
+    let is_tiktok_sound = crate::services::tiktok::is_tiktok_sound_url(url);
+    if is_tiktok_sound {
+        if let Ok(info) = crate::services::tiktok::probe_sound(url).await {
+            return Ok(info);
+        }
+    }
+
     let bin = binaries::resolve(Tool::YtDlp, settings).ok_or_else(|| {
         CommandError::new(
             "YTDLP_MISSING",
@@ -669,11 +815,16 @@ pub async fn fetch_metadata(
 
     let mut args: Vec<String> = vec![
         "--ignore-config".into(),
-        "--no-playlist".into(),
         "--no-warnings".into(),
         "--no-progress".into(),
         "-J".into(),
     ];
+    if is_tiktok_sound {
+        args.push("--playlist-items".into());
+        args.push("1".into());
+    } else {
+        args.push("--no-playlist".into());
+    }
     if let Some(ffmpeg) = binaries::resolve(Tool::Ffmpeg, settings) {
         if let Some(dir) = ffmpeg.parent() {
             args.push("--ffmpeg-location".into());
@@ -688,17 +839,22 @@ pub async fn fetch_metadata(
     if output.timed_out {
         return Err(CommandError::new(
             "METADATA_TIMEOUT",
-            "YouTube took too long to respond. Check your connection and try again.",
+            "The video service took too long to respond. Check your connection and try again.",
         ));
     }
     if !output.success {
         return Err(map_error_for_settings(
             &output.stderr,
-            "yt-dlp could not load this video.",
+            "yt-dlp could not load this link.",
             settings,
         ));
     }
 
     let json = metadata::parse_json(output.stdout.as_bytes())?;
-    metadata::parse_video_info(&json)
+    let mut info = metadata::parse_video_info(&json)?;
+    if is_tiktok_sound {
+        info.source = VideoSource::Tiktok;
+        info.audio_only = true;
+    }
+    Ok(info)
 }

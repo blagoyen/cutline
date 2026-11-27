@@ -234,6 +234,7 @@ async fn probe_twitch_vod(vod_id: &str, canonical_url: &str) -> Result<VideoInfo
         webpage_url: canonical_url.to_string(),
         stream_url: Some(master_url),
         audio_stream_url: None,
+        audio_only: false,
         view_count,
         upload_date,
         is_live: false,
@@ -336,6 +337,7 @@ async fn probe_twitch_clip(slug: &str, canonical_url: &str) -> Result<VideoInfo,
         webpage_url: canonical_url.to_string(),
         stream_url: best_url,
         audio_stream_url: None,
+        audio_only: false,
         view_count: clip.get("viewCount").and_then(|v| v.as_u64()),
         upload_date: clip
             .get("createdAt")
@@ -623,6 +625,7 @@ async fn probe_youtube(
         webpage_url: canonical_url.to_string(),
         stream_url: proxied_video,
         audio_stream_url: proxied_audio,
+        audio_only: false,
         view_count,
         upload_date: None,
         is_live,

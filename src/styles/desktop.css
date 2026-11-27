@@ -893,3 +893,115 @@ body {
   margin-top: 24px;
   padding-top: 12px;
 }
+
+/* ==========================================================================
+   TikTok Video & Sound Support
+   ========================================================================== */
+.source-pill-tiktok,
+.urlbar-badge-tiktok {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.eyebrow-source-tiktok,
+.session-source-tiktok {
+  color: var(--text-primary);
+}
+
+.player-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #070708;
+}
+
+.frame.is-audio-only {
+  aspect-ratio: auto;
+  min-height: 200px;
+  max-height: 240px;
+  background: var(--surface-2);
+}
+
+.audio-stage-card {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 100%;
+  min-height: 200px;
+  padding: 20px 24px;
+}
+
+.audio-stage-cover-wrap {
+  width: 112px;
+  height: 112px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  flex: none;
+}
+
+.audio-stage-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.audio-stage-cover-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+}
+
+.audio-stage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.audio-stage-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--success);
+}
+
+.audio-stage-title {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.audio-stage-author {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tiktok-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.tiktok-quick-btn {
+  height: 38px;
+  padding: 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+

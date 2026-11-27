@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useRef } from "react";
-import { ArrowRight, ClipboardPaste, Link2, Loader2, PlaySquare, Tv, X } from "lucide-react";
+import { ArrowRight, Clapperboard, ClipboardPaste, Link2, Loader2, Music2, PlaySquare, Tv, X } from "lucide-react";
 import type { VideoSource } from "../types";
 
 interface UrlBarProps {
@@ -13,11 +13,16 @@ interface UrlBarProps {
   onSubmit: () => void;
 }
 
-function detectInputSource(raw: string): VideoSource | null {
+type DetectedKind = { source: VideoSource; sound?: boolean } | null;
+
+function detectInputSource(raw: string): DetectedKind {
   const lower = raw.trim().toLowerCase();
   if (!lower) return null;
-  if (lower.includes("twitch.tv")) return "twitch";
-  if (lower.includes("youtube.com") || lower.includes("youtu.be")) return "youtube";
+  if (lower.includes("twitch.tv")) return { source: "twitch" };
+  if (lower.includes("tiktok.com")) {
+    return { source: "tiktok", sound: lower.includes("/music/") };
+  }
+  if (lower.includes("youtube.com") || lower.includes("youtu.be")) return { source: "youtube" };
   return null;
 }
 
@@ -49,19 +54,25 @@ export const UrlBar = memo(function UrlBar({
   return (
     <section
       className={`urlbar-wrap${compact ? " urlbar-wrap-compact" : ""}`}
-      aria-label="Load a YouTube video or Twitch VOD"
+      aria-label="Load a YouTube, Twitch, or TikTok link"
     >
       <form
-        className={`urlbar${detected ? ` urlbar-${detected}` : ""}${compact ? " urlbar-compact" : ""}`}
+        className={`urlbar${detected ? ` urlbar-${detected.source}` : ""}${compact ? " urlbar-compact" : ""}`}
         onSubmit={(event) => {
           event.preventDefault();
           if (!loading && value.trim()) onSubmit();
         }}
       >
         <span className="urlbar-icon" aria-hidden="true">
-          {detected === "twitch" ? (
+          {detected?.source === "twitch" ? (
             <Tv size={16} strokeWidth={1.85} />
-          ) : detected === "youtube" ? (
+          ) : detected?.source === "tiktok" ? (
+            detected.sound ? (
+              <Music2 size={16} strokeWidth={1.85} />
+            ) : (
+              <Clapperboard size={16} strokeWidth={1.85} />
+            )
+          ) : detected?.source === "youtube" ? (
             <PlaySquare size={16} strokeWidth={1.85} />
           ) : (
             <Link2 size={16} strokeWidth={1.75} />
@@ -72,17 +83,27 @@ export const UrlBar = memo(function UrlBar({
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder={isMobile ? "Paste YouTube or Twitch link…" : "Paste a YouTube video, Shorts, or Twitch VOD URL…"}
+          placeholder={
+            isMobile
+              ? "Paste YouTube, Twitch, or TikTok link…"
+              : "Paste a YouTube, Twitch, or TikTok video / sound URL…"
+          }
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
-          aria-label="YouTube video or Twitch VOD URL"
+          aria-label="YouTube, Twitch, or TikTok URL"
           aria-invalid={Boolean(error)}
           disabled={loading || disabled}
         />
         {detected ? (
-          <span className={`urlbar-badge urlbar-badge-${detected}`}>
-            {detected === "twitch" ? "Twitch" : "YouTube"}
+          <span className={`urlbar-badge urlbar-badge-${detected.source}`}>
+            {detected.source === "twitch"
+              ? "Twitch"
+              : detected.source === "tiktok"
+                ? detected.sound
+                  ? "TikTok Sound"
+                  : "TikTok"
+                : "YouTube"}
           </span>
         ) : null}
         {value.trim() && !loading ? (
@@ -135,7 +156,7 @@ export const UrlBar = memo(function UrlBar({
       {!compact ? (
         <div className="urlbar-meta">
           <span className={error ? "error-text" : "urlbar-hint"}>
-            {error ?? "youtube.com · youtu.be · Shorts · twitch.tv/videos · clips.twitch.tv"}
+            {error ?? "youtube.com · twitch.tv · tiktok.com · vm.tiktok.com · tiktok.com/music"}
           </span>
           <span className="urlbar-meta-sep" aria-hidden="true" />
           <span className="urlbar-privacy">Local yt-dlp &amp; FFmpeg</span>

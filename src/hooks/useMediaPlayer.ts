@@ -451,6 +451,12 @@ export function useMediaPlayer(
             error:
               "No direct preview stream was returned for this Twitch link. You can still scrub the timeline and export clips.",
           });
+        } else if (source === "tiktok") {
+          applyState({
+            ready: false,
+            error:
+              "No direct preview stream was returned for this TikTok link. You can still export the full video, sound, or custom cuts.",
+          });
         } else {
           await createYouTube();
         }

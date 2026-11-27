@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum VideoSource {
     Youtube,
     Twitch,
+    Tiktok,
 }
 
 impl Default for VideoSource {
@@ -51,6 +52,8 @@ pub struct VideoInfo {
     pub stream_url: Option<String>,
     #[serde(default)]
     pub audio_stream_url: Option<String>,
+    #[serde(default)]
+    pub audio_only: bool,
     pub is_live: bool,
     pub max_height: u32,
     pub heights: Vec<u32>,

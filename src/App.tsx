@@ -190,9 +190,14 @@ export default function App() {
     try {
       const info = await api.probeVideo(trimmed);
       setVideo(info);
-      const requested = Number.parseInt(quality, 10);
-      if (Number.isFinite(requested) && !info.heights.includes(requested)) {
+      if (info.audioOnly) {
+        setFormat("mp3");
         setQuality("best");
+      } else {
+        const requested = Number.parseInt(quality, 10);
+        if (Number.isFinite(requested) && !info.heights.includes(requested)) {
+          setQuality("best");
+        }
       }
       setUrl(info.webpageUrl);
       setClips([]);
@@ -529,6 +534,39 @@ export default function App() {
       .catch((err) => toast(errorMessage(err), "error"));
   });
 
+  const downloadFullMedia = useStableCallback((targetFormat: "mp4" | "mp3") => {
+    if (!video || !ensureToolsReady()) return;
+    const endMs = Math.max(1000, durationMs || video.durationMs);
+    const label = targetFormat === "mp3" ? "Sound" : "Full Video";
+    const request: DownloadRequest = {
+      clipId: `full-${targetFormat}-${newId()}`,
+      clipName: `${video.title} (${label})`,
+      fileBase: applyNamingTemplate(namingTemplate, video.title, label, 0, 0),
+      url: video.webpageUrl,
+      startMs: 0,
+      endMs,
+      sections: [{ startMs: 0, endMs }],
+      quality: targetFormat === "mp3" ? "best" : quality,
+      format: targetFormat,
+      precise: false,
+    };
+    setExporting(true);
+    void startDownload(request)
+      .then(() =>
+        toast(
+          targetFormat === "mp3"
+            ? "Queued TikTok sound (MP3)."
+            : "Queued full TikTok video (MP4).",
+          "success",
+        ),
+      )
+      .catch((err) => toast(errorMessage(err), "error"))
+      .finally(() => setExporting(false));
+  });
+
+  const downloadFullVideo = useStableCallback(() => downloadFullMedia("mp4"));
+  const downloadFullSound = useStableCallback(() => downloadFullMedia("mp3"));
+
   const downloadAll = useStableCallback(() => {
     if (!video || clips.length === 0 || !ensureToolsReady()) return;
     setExporting(true);
@@ -851,8 +889,9 @@ export default function App() {
                 clipCount={clips.length}
                 totalDurationMs={totalDurationMs}
                 quality={quality}
-                format={format}
+                format={video.audioOnly ? "mp3" : format}
                 activeSource={video.source}
+                audioOnly={Boolean(video.audioOnly)}
                 compact
               />
 
@@ -956,6 +995,8 @@ export default function App() {
                 onNamingTemplate={changeNamingTemplate}
                 onMergeCuts={changeMergeCuts}
                 onExport={downloadAll}
+                onQuickFullVideo={video.source === "tiktok" && !video.audioOnly ? downloadFullVideo : undefined}
+                onQuickFullSound={video.source === "tiktok" ? downloadFullSound : undefined}
               />
 
               <ClipList
@@ -1033,7 +1074,7 @@ export default function App() {
         <footer className="app-footer">
           <span className="footer-item">Cutline{version ? ` v${version}` : ""}</span>
           <span className="footer-sep" aria-hidden="true" />
-          <span className="footer-item">YouTube &amp; Twitch · 100% local</span>
+          <span className="footer-item">YouTube · Twitch · TikTok · 100% local</span>
           <span className="footer-item footer-path" title={settings.outputDir}>
             {settings.outputDir}
           </span>

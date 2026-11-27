@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { PlaySquare, Scissors, ShieldCheck, Tv } from "lucide-react";
+import { Music2, PlaySquare, Scissors, ShieldCheck, Tv } from "lucide-react";
 import type { VideoSource } from "../types";
 import { formatDuration, qualityLabel } from "../utils/format";
 
@@ -9,6 +9,7 @@ interface HeroPanelProps {
   quality: string;
   format: string;
   activeSource: VideoSource | null;
+  audioOnly?: boolean;
   compact?: boolean;
   isMobile?: boolean;
 }
@@ -19,6 +20,7 @@ export const HeroPanel = memo(function HeroPanel({
   quality,
   format,
   activeSource,
+  audioOnly = false,
   compact = false,
   isMobile = false,
 }: HeroPanelProps) {
@@ -36,13 +38,19 @@ export const HeroPanel = memo(function HeroPanel({
         </span>
         <span className="session-sep" aria-hidden="true" />
         <span className="session-pill">
-          <b>{qualityLabel(quality).toUpperCase()}</b> · {format.toUpperCase()}
+          <b>{audioOnly ? "ORIGINAL AUDIO" : qualityLabel(quality).toUpperCase()}</b> · {format.toUpperCase()}
         </span>
         {activeSource ? (
           <>
             <span className="session-sep" aria-hidden="true" />
             <span className={`session-source session-source-${activeSource}`}>
-              {activeSource === "twitch" ? "TWITCH VOD" : "YOUTUBE"}
+              {activeSource === "twitch"
+                ? "TWITCH VOD"
+                : activeSource === "tiktok"
+                  ? audioOnly
+                    ? "TIKTOK SOUND"
+                    : "TIKTOK"
+                  : "YOUTUBE"}
             </span>
           </>
         ) : null}
@@ -55,7 +63,7 @@ export const HeroPanel = memo(function HeroPanel({
       <section className="ios-home-head" aria-label="Cutline overview">
         <h1 className="ios-home-title">Clip any video</h1>
         <p className="ios-home-sub">
-          Paste a YouTube or Twitch link to trim and save clips directly on your iPhone.
+          Paste a YouTube, Twitch, or TikTok link to trim and save clips directly on your device.
         </p>
       </section>
     );
@@ -64,10 +72,10 @@ export const HeroPanel = memo(function HeroPanel({
   return (
     <section className="launcher-hero" aria-label="Cutline overview">
       <div className="launcher-hero-head">
-        <h1 className="launcher-title">Clip YouTube &amp; Twitch locally</h1>
+        <h1 className="launcher-title">Clip YouTube, Twitch &amp; TikTok</h1>
         <p className="launcher-sub">
-          Paste a link to scrub frame-by-frame, mark multiple cuts, and export clean MP4 or MP3
-          files with local yt-dlp &amp; FFmpeg.
+          Paste a video or TikTok sound link to scrub frame-by-frame, mark cuts, or grab clean MP4
+          videos and MP3 sounds locally with yt-dlp &amp; FFmpeg.
         </p>
       </div>
       <div className="launcher-tags" aria-label="Supported video sources">
@@ -79,9 +87,13 @@ export const HeroPanel = memo(function HeroPanel({
           <Tv size={12} strokeWidth={2} aria-hidden="true" />
           Twitch VODs &amp; Clips
         </span>
+        <span className="source-pill source-pill-tiktok">
+          <Music2 size={12} strokeWidth={2} aria-hidden="true" />
+          TikTok Videos &amp; Sounds
+        </span>
         <span className="source-pill">
           <ShieldCheck size={12} strokeWidth={2} aria-hidden="true" />
-          100% Local · No Uploads
+          100% Local
         </span>
       </div>
     </section>

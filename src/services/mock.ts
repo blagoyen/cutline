@@ -188,6 +188,41 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
           message: "This video is unavailable. It may be private, removed, or region locked.",
         } satisfies CommandError;
       }
+      if (url.toLowerCase().includes("tiktok.com")) {
+        const lower = url.toLowerCase();
+        if (lower.includes("/music/")) {
+          const id = lower.match(/(\d{6,})/)?.[1] ?? "7348910293847102";
+          return {
+            ...VIDEO,
+            id,
+            source: "tiktok",
+            title: "Original Sound — Midnight Synth Loop",
+            uploader: "@synthcreator",
+            webpageUrl: `https://www.tiktok.com/music/Original-Sound-${id}`,
+            streamUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3",
+            audioOnly: true,
+            durationMs: 28_000,
+            maxHeight: 0,
+            heights: [],
+            chapters: [],
+          } as T;
+        }
+        const id = lower.match(/video\/(\d+)/)?.[1] ?? "7348910293847199";
+        return {
+          ...VIDEO,
+          id,
+          source: "tiktok",
+          title: "Street Drift Highlights in Tokyo #carsoftiktok",
+          uploader: "@tokyodrift",
+          webpageUrl: `https://www.tiktok.com/@tokyodrift/video/${id}`,
+          streamUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+          audioOnly: false,
+          durationMs: 42_000,
+          maxHeight: 1080,
+          heights: [1080, 720, 540],
+          chapters: [],
+        } as T;
+      }
       if (url.toLowerCase().includes("twitch.tv")) {
         const match = url.match(/videos\/(\d+)/i);
         const id = match?.[1] ?? "2145678901";
@@ -323,7 +358,7 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
         message: "Provider is stopped.",
       } as T;
     case "app_version":
-      return "3.0.0" as T;
+      return "3.1.0" as T;
     case "pick_directory":
       await sleep(300);
       return "D:\\Exports\\Cutline" as T;

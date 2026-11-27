@@ -249,9 +249,9 @@ fn build_args(
     ffmpeg_dir: Option<&Path>,
     settings: &Settings,
 ) -> Vec<String> {
+    let is_tiktok_sound = crate::services::tiktok::is_tiktok_sound_url(&task.url);
     let mut args: Vec<String> = vec![
         "--ignore-config".into(),
-        "--no-playlist".into(),
         "--no-warnings".into(),
         "--no-mtime".into(),
         "--newline".into(),
@@ -275,6 +275,13 @@ fn build_args(
         ),
     ];
 
+    if is_tiktok_sound {
+        args.push("--playlist-items".into());
+        args.push("1".into());
+    } else {
+        args.push("--no-playlist".into());
+    }
+
     args.extend([
         "--progress-template".into(),
         PROGRESS_TEMPLATE.into(),
@@ -293,7 +300,7 @@ fn build_args(
     // Add source-appropriate yt-dlp args (cookies for YouTube & Twitch; JS runtime/PO Token for YouTube).
     yt_dlp::auth_args_for_url(settings, &task.url, &mut args);
 
-    if task.format == "mp3" {
+    if task.format == "mp3" || is_tiktok_sound {
         args.extend([
             "-f".into(),
             "ba/b".into(),
@@ -617,6 +624,134 @@ impl DownloadManager {
         self.pump();
     }
 
+    /// Download a TikTok `/music/...` sound directly from its master `playUrl` using FFmpeg
+    /// so we get the clean audio track (not a playlist of videos) with live progress.
+    #[allow(clippy::too_many_arguments)]
+    async fn run_tiktok_sound_section(
+        &self,
+        task: &DownloadTask,
+        control: &TaskControl,
+        settings: &Settings,
+        section: &DownloadSection,
+        section_index: usize,
+        total_sections: usize,
+        section_dir: &Path,
+        tmp_root: &Path,
+        tmp_dir: &Path,
+    ) -> Result<Option<PathBuf>, CommandError> {
+        let Ok(sound) = crate::services::tiktok::resolve_sound(&task.url).await else {
+            return Ok(None);
+        };
+        let Some(ffmpeg_bin) = binaries::resolve(Tool::Ffmpeg, settings) else {
+            return Ok(None);
+        };
+
+        let out_path = section_dir.join("clip.mp3");
+        let headers = format!(
+            "Referer: {}\r\nUser-Agent: {}\r\n",
+            crate::services::tiktok::TIKTOK_REFERER,
+            crate::services::tiktok::TIKTOK_USER_AGENT
+        );
+
+        let mut args: Vec<String> = vec![
+            "-y".into(),
+            "-hide_banner".into(),
+            "-headers".into(),
+            headers,
+            "-ss".into(),
+            section_timestamp(section.start_ms),
+            "-to".into(),
+            section_timestamp(section.end_ms),
+            "-i".into(),
+            sound.play_url,
+            "-vn".into(),
+            "-codec:a".into(),
+            "libmp3lame".into(),
+            "-q:a".into(),
+            "0".into(),
+            "-metadata".into(),
+            format!("title={}", sound.title),
+        ];
+        if let Some(author) = sound.author {
+            args.push("-metadata".into());
+            args.push(format!("artist={author}"));
+        }
+        args.push(out_path.to_string_lossy().into_owned());
+
+        let mut command = Command::new(&ffmpeg_bin);
+        command
+            .args(&args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true);
+        process_manager::hide_console(&mut command);
+
+        let mut child = command.spawn().map_err(|err| {
+            CommandError::new("PROCESS_SPAWN_FAILED", "Could not start FFmpeg.")
+                .with_detail(err.to_string())
+        })?;
+        let pid = child.id();
+        let stderr = child.stderr.take();
+        let (tx, mut rx) = mpsc::channel::<ChildLine>(128);
+        if let Some(reader) = stderr {
+            tauri::async_runtime::spawn(read_lines(reader, tx, false));
+        }
+
+        let section_duration_ms = section.end_ms.saturating_sub(section.start_ms);
+        let mut stderr_lines: Vec<String> = Vec::new();
+        let mut last_emit = std::time::Instant::now() - Duration::from_secs(1);
+        let mut ticker = tokio::time::interval(Duration::from_millis(200));
+
+        loop {
+            tokio::select! {
+                _ = ticker.tick() => {
+                    if control.cancelled.load(Ordering::SeqCst) {
+                        if let Some(id) = pid {
+                            process_manager::kill_tree(id);
+                        }
+                        let _ = child.kill().await;
+                        let _ = tokio::fs::remove_dir_all(tmp_dir).await;
+                        let _ = tokio::fs::remove_dir_all(tmp_root).await;
+                        return Err(CommandError::new("CANCELLED", "Download cancelled."));
+                    }
+                }
+                maybe_line = rx.recv() => {
+                    let Some(line) = maybe_line else { break };
+                    if stderr_lines.len() >= 120 {
+                        stderr_lines.remove(0);
+                    }
+                    stderr_lines.push(line.text.clone());
+                    if let Some(progress) = parse_ffmpeg_progress(&line.text, section_duration_ms) {
+                        if last_emit.elapsed() >= Duration::from_millis(200) {
+                            self.apply_progress_scaled(
+                                &task.id,
+                                &progress,
+                                DownloadStatus::Fetching,
+                                section_index,
+                                total_sections,
+                            );
+                            last_emit = std::time::Instant::now();
+                        }
+                    }
+                }
+            }
+        }
+
+        let status = child.wait().await.map_err(|err| {
+            CommandError::new("PROCESS_WAIT_FAILED", "FFmpeg exited unexpectedly.")
+                .with_detail(err.to_string())
+        })?;
+
+        if control.cancelled.load(Ordering::SeqCst) {
+            return Err(CommandError::new("CANCELLED", "Download cancelled."));
+        }
+        if status.success() && tokio::fs::metadata(&out_path).await.map(|m| m.len() > 0).unwrap_or(false) {
+            return Ok(Some(out_path));
+        }
+        Ok(None)
+    }
+
 /// Download one section and return the output file.
     #[allow(clippy::too_many_arguments)]
     async fn run_section(
@@ -633,6 +768,25 @@ impl DownloadManager {
         yt_dlp_bin: &Path,
         ffmpeg_dir: Option<&Path>,
     ) -> Result<PathBuf, CommandError> {
+        if crate::services::tiktok::is_tiktok_sound_url(&task.url) {
+            if let Some(path) = self
+                .run_tiktok_sound_section(
+                    task,
+                    control,
+                    settings,
+                    section,
+                    section_index,
+                    total_sections,
+                    section_dir,
+                    tmp_root,
+                    tmp_dir,
+                )
+                .await?
+            {
+                return Ok(path);
+            }
+        }
+
         let args = build_args(task, section, section_dir, ffmpeg_dir, settings);
 
         let mut command = Command::new(yt_dlp_bin);

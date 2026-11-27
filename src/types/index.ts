@@ -26,7 +26,7 @@ export interface Chapter {
   title: string;
 }
 
-export type VideoSource = "youtube" | "twitch";
+export type VideoSource = "youtube" | "twitch" | "tiktok";
 
 export interface VideoInfo {
   id: string;
@@ -38,6 +38,7 @@ export interface VideoInfo {
   webpageUrl: string;
   streamUrl?: string | null;
   audioStreamUrl?: string | null;
+  audioOnly?: boolean;
   isLive: boolean;
   maxHeight: number;
   heights: number[];

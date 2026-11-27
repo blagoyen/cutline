@@ -8,6 +8,8 @@ use tokio::net::{TcpListener, TcpStream};
 struct UpstreamEntry {
     url: String,
     user_agent: Option<String>,
+    referer: Option<String>,
+    cookie: Option<String>,
 }
 
 struct ProxyServer {
@@ -62,10 +64,22 @@ fn ensure_started() -> Result<&'static ProxyServer, String> {
         .ok_or_else(|| "Proxy server failed to initialize".to_string())
 }
 
-/// Register an upstream media URL and return a `http://127.0.0.1:<port>/s/<id>.mp4` URL
-/// that WKWebView `<video>` / `<audio>` can stream and scrub with proper headers.
+/// Register an upstream media URL and return a `http://127.0.0.1:<port>/s/<id>.<ext>` URL
+/// that WebView `<video>` / `<audio>` can stream and scrub with proper headers.
 #[allow(dead_code)]
 pub fn register(url: String, user_agent: Option<String>, ext: &str) -> Result<String, String> {
+    register_with_headers(url, user_agent, None, None, ext)
+}
+
+/// Register an upstream media URL with optional `User-Agent`, `Referer`, and `Cookie` headers.
+#[allow(dead_code)]
+pub fn register_with_headers(
+    url: String,
+    user_agent: Option<String>,
+    referer: Option<String>,
+    cookie: Option<String>,
+    ext: &str,
+) -> Result<String, String> {
     let server = ensure_started()?;
     let id = uuid::Uuid::new_v4().simple().to_string();
     {
@@ -74,7 +88,15 @@ pub fn register(url: String, user_agent: Option<String>, ext: &str) -> Result<St
         if map.len() > 32 {
             map.clear();
         }
-        map.insert(id.clone(), UpstreamEntry { url, user_agent });
+        map.insert(
+            id.clone(),
+            UpstreamEntry {
+                url,
+                user_agent,
+                referer,
+                cookie,
+            },
+        );
     }
     let clean_ext = ext.trim_start_matches('.');
     Ok(format!("http://127.0.0.1:{}/s/{}.{}", server.port, id, clean_ext))
@@ -143,6 +165,12 @@ async fn handle_connection(
 
     if let Some(ua) = &entry.user_agent {
         req = req.header("User-Agent", ua);
+    }
+    if let Some(referer) = &entry.referer {
+        req = req.header("Referer", referer);
+    }
+    if let Some(cookie) = &entry.cookie {
+        req = req.header("Cookie", cookie);
     }
     if let Some(range) = &range_header {
         req = req.header("Range", range);

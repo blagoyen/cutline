@@ -228,13 +228,19 @@ export const VideoStage = memo(function VideoStage({
   const selectedChapter = chapters[chapterIndex] ?? null;
 
   const isTwitch = video?.source === "twitch";
-  const sourceName = isTwitch ? "Twitch" : "YouTube";
+  const isTiktok = video?.source === "tiktok";
+  const isAudioOnly = Boolean(video?.audioOnly);
+  const sourceName = isTwitch ? "Twitch" : isTiktok ? "TikTok" : "YouTube";
   const sourceBadge = video
     ? isTwitch
       ? /^\d+$/.test(video.id)
         ? `Twitch VOD · ${video.id}`
         : `Twitch Clip · ${video.id}`
-      : `YouTube · ${video.id}`
+      : isTiktok
+        ? isAudioOnly
+          ? `TikTok Sound · ${video.id}`
+          : `TikTok · ${video.id}`
+        : `YouTube · ${video.id}`
     : "Preview";
 
   return (
@@ -277,12 +283,38 @@ export const VideoStage = memo(function VideoStage({
         ) : null}
       </div>
 
-      <div className={`player-frame${video ? "" : " is-empty"}`} ref={frameRef}>
-        <div className={`frame${video ? "" : " is-empty"}`}>
+      <div className={`player-frame${video ? "" : " is-empty"}${isAudioOnly ? " is-audio-only" : ""}`} ref={frameRef}>
+        <div className={`frame${video ? "" : " is-empty"}${isAudioOnly ? " is-audio-only" : ""}`}>
           <div className="player-host-wrap" ref={hostRef} aria-hidden={!video} />
-          {video ? <span className="player-brand-mask" aria-hidden="true" /> : null}
+          {video && !isAudioOnly ? <span className="player-brand-mask" aria-hidden="true" /> : null}
 
-          {showPoster && !player.error ? (
+          {video && isAudioOnly && !player.error ? (
+            <div className="audio-stage-card">
+              <div className="audio-stage-cover-wrap">
+                {video.thumbnail ? (
+                  <img
+                    className={`audio-stage-cover${player.playing ? " is-playing" : ""}`}
+                    src={video.thumbnail}
+                    alt=""
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="audio-stage-cover audio-stage-cover-fallback">
+                    <Volume2 size={28} strokeWidth={1.6} />
+                  </div>
+                )}
+              </div>
+              <div className="audio-stage-info">
+                <span className="audio-stage-kicker">
+                  {player.playing ? "Playing TikTok Sound" : "TikTok Sound · Audio Only"}
+                </span>
+                <p className="audio-stage-title">{video.title}</p>
+                {video.uploader ? <span className="audio-stage-author">{video.uploader}</span> : null}
+              </div>
+            </div>
+          ) : null}
+
+          {showPoster && !player.error && !isAudioOnly ? (
             <div className="frame-overlay">
               {video?.thumbnail ? (
                 <img className="frame-poster" src={video.thumbnail} alt="" draggable={false} />
