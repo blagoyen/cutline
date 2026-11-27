@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "label": "RELEASE",
-  "message": "Cutline 2.3.0 — Officialy out!",
+  "message": "Cutline 3.0.0 — Redesigned desktop studio & live clip progress",
   "tone": "success",
-  "updatedAt": "2026-11-25"
+  "updatedAt": "2026-11-27"
 }

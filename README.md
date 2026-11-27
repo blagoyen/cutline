@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>v2.5.0</strong> &nbsp;·&nbsp; YouTube &amp; Twitch VODs &nbsp;·&nbsp; Windows &amp; iOS &nbsp;·&nbsp; Tauri 2 &nbsp;·&nbsp; local-first
+  <strong>v3.0.0</strong> &nbsp;·&nbsp; YouTube &amp; Twitch VODs &nbsp;·&nbsp; Windows Desktop &nbsp;·&nbsp; Tauri 2 &nbsp;·&nbsp; local-first
 </p>
 
 ---
@@ -29,7 +29,7 @@ Instead of downloading an entire multi-hour VOD or video just to trim out a 30-s
 
 ## Install
 
-Grab the installer from `src-tauri/target/release/bundle/nsis/Cutline_2.5.0_x64-setup.exe` after building, or download the Windows installer or unsigned iOS `.ipa` from GitHub Releases.
+Grab the installer from `src-tauri/target/release/bundle/nsis/Cutline_3.0.0_x64-setup.exe` after building, or download the Windows installer from GitHub Releases.
 
 Current build: 2,816,415 bytes · SHA-256 `63BFCC223843D9D5FF30DCB93DF553CBB4EF1F4971E6B373539B9FB7652F6C0C`.
 

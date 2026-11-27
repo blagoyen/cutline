@@ -62,42 +62,26 @@ export const HeroPanel = memo(function HeroPanel({
   }
 
   return (
-    <section className="editorial-hero" aria-label="Cutline overview">
-      <div className="editorial-hero-top">
-        <h1 className="editorial-headline">
-          The clipper
-          <br />
-          you can cut on
-        </h1>
-        <p className="editorial-lede">
-          <span>
-            Import YouTube videos and Twitch VODs, scrub to the exact frame, and slice clean{" "}
-            {isMobile ? "MP4 or M4A" : "MP4 or MP3"} clips.
-          </span>{" "}
-          {isMobile
-            ? "Hardware-accelerated with native AVFoundation — private, fast, and 100% on your iPhone."
-            : "Built on local yt-dlp & FFmpeg infrastructure that stays private, fast, and entirely on your machine."}
+    <section className="launcher-hero" aria-label="Cutline overview">
+      <div className="launcher-hero-head">
+        <h1 className="launcher-title">Clip YouTube &amp; Twitch locally</h1>
+        <p className="launcher-sub">
+          Paste a link to scrub frame-by-frame, mark multiple cuts, and export clean MP4 or MP3
+          files with local yt-dlp &amp; FFmpeg.
         </p>
       </div>
-
-      <div className="editorial-meta-row">
-        <div className="source-pills" aria-label="Supported video sources">
-          <span className="source-pill source-pill-youtube">
-            <PlaySquare size={12} strokeWidth={2} aria-hidden="true" />
-            YOUTUBE &amp; SHORTS
-          </span>
-          <span className="source-pill source-pill-twitch">
-            <Tv size={12} strokeWidth={2} aria-hidden="true" />
-            TWITCH VODS &amp; CLIPS
-          </span>
-          <span className="source-pill">
-            <ShieldCheck size={12} strokeWidth={2} aria-hidden="true" />
-            100% LOCAL
-          </span>
-        </div>
-        <span className="editorial-kicker">
-          <span className="editorial-kicker-dot" aria-hidden="true" />
-          FRAME-ACCURATE · ZERO CLOUD UPLOADS
+      <div className="launcher-tags" aria-label="Supported video sources">
+        <span className="source-pill source-pill-youtube">
+          <PlaySquare size={12} strokeWidth={2} aria-hidden="true" />
+          YouTube &amp; Shorts
+        </span>
+        <span className="source-pill source-pill-twitch">
+          <Tv size={12} strokeWidth={2} aria-hidden="true" />
+          Twitch VODs &amp; Clips
+        </span>
+        <span className="source-pill">
+          <ShieldCheck size={12} strokeWidth={2} aria-hidden="true" />
+          100% Local · No Uploads
         </span>
       </div>
     </section>

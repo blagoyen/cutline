@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FolderOpen, Loader2 } from "lucide-react";
 import { useSettings } from "./hooks/useSettings";
 import { useDownloads } from "./hooks/useDownloads";
 import { useNotifications } from "./hooks/useNotifications";
@@ -6,7 +7,7 @@ import { useStableCallback } from "./hooks/useStableCallback";
 import { useMediaPlayer, type LoopRange } from "./hooks/useMediaPlayer";
 import { api, errorMessage } from "./services/api";
 import type { Chapter, Clip, DownloadRequest, DownloadSection, Settings, VideoInfo } from "./types";
-import { applyNamingTemplate, NAMING_TEMPLATES } from "./utils/format";
+import { applyNamingTemplate, formatEta, formatSpeed, NAMING_TEMPLATES } from "./utils/format";
 import { TopBar } from "./components/TopBar";
 import { UrlBar } from "./components/UrlBar";
 import { HeroPanel } from "./components/HeroPanel";
@@ -18,7 +19,6 @@ import { DownloadManager } from "./components/DownloadManager";
 import { DependencyBanner } from "./components/DependencyBanner";
 import { Toasts } from "./components/Toasts";
 import { BrandMark } from "./components/BrandMark";
-import { AsciiBackdrop } from "./components/AsciiBackdrop";
 import { MobileTabBar, type MobileTab } from "./components/MobileTabBar";
 import { isMobilePlatform } from "./utils/platform";
 
@@ -719,6 +719,39 @@ export default function App() {
     void api.openUrl(video?.webpageUrl ?? "").catch((err) => toast(errorMessage(err), "error"));
   });
 
+  const activeCount = activeDownloads.length;
+  const activeSummary = useMemo(() => {
+    if (activeDownloads.length === 0) return null;
+    const working = activeDownloads.filter(
+      (task) => task.status === "fetching" || task.status === "processing",
+    );
+    const withProgress = working.filter(
+      (task) => (task.totalBytes != null && task.totalBytes > 0) || task.progress > 0,
+    );
+    const ratio =
+      withProgress.length > 0
+        ? withProgress.reduce((sum, task) => sum + task.progress, 0) / withProgress.length
+        : 0;
+    const speedBps = working.reduce((sum, task) => sum + (task.speedBps ?? 0), 0);
+    const etaSecs = working.reduce<number | null>((max, task) => {
+      if (task.etaSecs == null) return max;
+      return max == null ? task.etaSecs : Math.max(max, task.etaSecs);
+    }, null);
+    const primary = working[0] ?? activeDownloads[0];
+    return {
+      count: activeDownloads.length,
+      known: withProgress.length > 0,
+      percent: Math.min(100, Math.round(ratio * 100)),
+      speedBps: speedBps > 0 ? speedBps : null,
+      etaSecs,
+      label:
+        activeDownloads.length === 1
+          ? primary.clipName
+          : `${primary.clipName} + ${activeDownloads.length - 1} more`,
+      processing: working.length > 0 && working.every((task) => task.status === "processing"),
+    };
+  }, [activeDownloads]);
+
   if (!settings) {
     return (
       <div className="boot">
@@ -730,8 +763,6 @@ export default function App() {
     );
   }
 
-  const activeCount = activeDownloads.length;
-
   const activeMobileTab: MobileTab = settingsOpen ? "settings" : mobileTab;
 
   return (
@@ -740,7 +771,6 @@ export default function App() {
       data-source={video?.source ?? "none"}
       data-mobile-tab={mobileTab}
     >
-      {!isMobile ? <AsciiBackdrop variant="ambient" /> : null}
       <TopBar
         dependencies={dependencies}
         onOpenSettings={openSettings}
@@ -751,152 +781,224 @@ export default function App() {
 
       <main className="workspace">
         {!video ? (
-          <HeroPanel
-            clipCount={clips.length}
-            totalDurationMs={totalDurationMs}
-            quality={quality}
-            format={format}
-            activeSource={null}
-            isMobile={isMobile}
-          />
-        ) : null}
-
-        <UrlBar
-          value={url}
-          loading={loadingVideo}
-          error={loadError}
-          isMobile={isMobile}
-          onChange={handleUrlChange}
-          onSubmit={handleUrlSubmit}
-        />
-
-        {dependencies && !dependencies.ready ? (
-          <DependencyBanner
-            dependencies={dependencies}
-            installing={installingTools}
-            onInstall={() => void handleInstallTools()}
-            onOpenSettings={openSettings}
-          />
-        ) : null}
-
-        {!video && !isMobile ? (
-          <section className="landing-showcase" aria-label="Capabilities">
-            <div className="ascii-band-frame">
-              <AsciiBackdrop variant="band" monochrome={isMobile} />
-            </div>
-            <div className="spec-grid">
-              <div className="spec-cell">
-                <span className="spec-num">01</span>
-                <span className="spec-title">Direct HLS &amp; YouTube</span>
-                <span className="spec-desc">Native Twitch VOD playback and YouTube previews in one deck.</span>
-              </div>
-              <div className="spec-cell">
-                <span className="spec-num">02</span>
-                <span className="spec-title">Multi-cut &amp; Merge</span>
-                <span className="spec-desc">Stack cuts with keyboard shortcuts or concat them losslessly.</span>
-              </div>
-              <div className="spec-cell">
-                <span className="spec-num">03</span>
-                <span className="spec-title">Local &amp; Private</span>
-                <span className="spec-desc">
-                  {isMobile
-                    ? "Trims and saves selected ranges on-device with native AVFoundation."
-                    : "Downloads only selected ranges with local yt-dlp and FFmpeg."}
-                </span>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {video ? (
-          <div className="studio">
+          <div className="launcher-stage">
             <HeroPanel
               clipCount={clips.length}
               totalDurationMs={totalDurationMs}
               quality={quality}
               format={format}
-              activeSource={video.source}
-              compact
-            />
-
-            <VideoStage
-              video={video}
-              hostRef={hostRef}
-              player={player}
-              clips={clips}
-              pendingIn={pendingIn}
-              pendingOut={pendingOut}
-              activeRange={activeRange}
-              canAddCut={Boolean(video)}
-              loopEnabled={loopEnabled}
-              canLoop={Boolean(activeRange && player.ready)}
-              onOpenSource={handleOpenSource}
-              onMarkIn={markIn}
-              onMarkOut={markOut}
-              onAddCut={addCut}
-              onToggleLoop={toggleLoop}
-              onSeek={seekMs}
-              onSkip={skipMs}
-              onQuickCut={quickCut}
-              chapters={video.chapters ?? NO_CHAPTERS}
-              onJumpChapter={jumpToChapter}
-              onChapterToCut={chapterToCut}
-            />
-
-            <Timeline
-              durationMs={durationMs}
-              currentMsRef={player.currentMsRef}
-              clips={clips}
-              activeClipId={activeClipId}
-              pendingIn={pendingIn}
-              pendingOut={pendingOut}
-              onSeek={seekMs}
-              onChangeClip={changeClipRange}
-              onSelectClip={setActiveClipId}
-            />
-
-            <ClipToolbar
-              video={video}
-              quality={quality}
-              format={format}
-              precise={precise}
-              namingTemplate={namingTemplate}
-              mergeCuts={mergeCuts}
-              clipCount={clips.length}
-              busy={exporting}
+              activeSource={null}
               isMobile={isMobile}
-              onQuality={changeQuality}
-              onFormat={changeFormat}
-              onPrecise={changePrecise}
-              onNamingTemplate={changeNamingTemplate}
-              onMergeCuts={changeMergeCuts}
-              onExport={downloadAll}
             />
 
-            <ClipList
-              clips={clips}
-              durationMs={durationMs}
-              activeClipId={activeClipId}
-              tasksByClip={byClip}
-              busy={exporting}
-              onSelect={setActiveClipId}
-              onChange={updateClip}
-              onDelete={deleteClip}
-              onDuplicate={duplicateClip}
-              onPreview={seekToClip}
-              onLoop={loopClip}
-              onDownload={downloadClip}
-              onMove={moveClip}
-              onNudge={nudgeClip}
-              onSnap={snapClip}
-              onAdd={addManualCut}
-              onFixOverlaps={fixOverlaps}
+            <UrlBar
+              value={url}
+              loading={loadingVideo}
+              error={loadError}
+              isMobile={isMobile}
+              onChange={handleUrlChange}
+              onSubmit={handleUrlSubmit}
             />
+
+            {dependencies && !dependencies.ready ? (
+              <DependencyBanner
+                dependencies={dependencies}
+                installing={installingTools}
+                onInstall={() => void handleInstallTools()}
+                onOpenSettings={openSettings}
+              />
+            ) : null}
+
+            {!isMobile ? (
+              <section className="launcher-shortcuts" aria-label="Keyboard workflow">
+                <span className="shortcut-chip"><kbd>Space</kbd> Play / Pause</span>
+                <span className="shortcut-chip"><kbd>I</kbd> Mark In</span>
+                <span className="shortcut-chip"><kbd>O</kbd> Mark Out</span>
+                <span className="shortcut-chip"><kbd>C</kbd> Add Cut</span>
+                <span className="shortcut-chip"><kbd>L</kbd> Loop Cut</span>
+                <span className="shortcut-chip"><kbd>←</kbd><kbd>→</kbd> Seek 1s</span>
+                <span className="shortcut-chip"><kbd>Shift</kbd>+<kbd>←</kbd><kbd>→</kbd> 0.1s</span>
+              </section>
+            ) : null}
           </div>
-        ) : null}
+        ) : (
+          <>
+            <UrlBar
+              value={url}
+              loading={loadingVideo}
+              error={loadError}
+              compact
+              isMobile={isMobile}
+              onChange={handleUrlChange}
+              onSubmit={handleUrlSubmit}
+            />
 
-        {downloadTasks.length > 0 ? (
-          <div className="studio-downloads">
+            {dependencies && !dependencies.ready ? (
+              <DependencyBanner
+                dependencies={dependencies}
+                installing={installingTools}
+                onInstall={() => void handleInstallTools()}
+                onOpenSettings={openSettings}
+              />
+            ) : null}
+          </>
+        )}
+
+        {video ? (
+          <div className="studio-split">
+            <div className="studio-main">
+              <HeroPanel
+                clipCount={clips.length}
+                totalDurationMs={totalDurationMs}
+                quality={quality}
+                format={format}
+                activeSource={video.source}
+                compact
+              />
+
+              <VideoStage
+                video={video}
+                hostRef={hostRef}
+                player={player}
+                clips={clips}
+                pendingIn={pendingIn}
+                pendingOut={pendingOut}
+                activeRange={activeRange}
+                canAddCut={Boolean(video)}
+                loopEnabled={loopEnabled}
+                canLoop={Boolean(activeRange && player.ready)}
+                onOpenSource={handleOpenSource}
+                onMarkIn={markIn}
+                onMarkOut={markOut}
+                onAddCut={addCut}
+                onToggleLoop={toggleLoop}
+                onSeek={seekMs}
+                onSkip={skipMs}
+                onQuickCut={quickCut}
+                chapters={video.chapters ?? NO_CHAPTERS}
+                onJumpChapter={jumpToChapter}
+                onChapterToCut={chapterToCut}
+              />
+
+              <Timeline
+                durationMs={durationMs}
+                currentMsRef={player.currentMsRef}
+                clips={clips}
+                activeClipId={activeClipId}
+                pendingIn={pendingIn}
+                pendingOut={pendingOut}
+                onSeek={seekMs}
+                onChangeClip={changeClipRange}
+                onSelectClip={setActiveClipId}
+              />
+            </div>
+
+            <aside className="studio-rail" aria-label="Cuts and exports">
+              {activeSummary ? (
+                <section className="export-activity-bar" aria-live="polite" aria-label="Active export progress">
+                  <div className="export-activity-head">
+                    <div className="export-activity-title">
+                      <Loader2 className="spin" size={13} strokeWidth={2.2} />
+                      <span className="export-activity-name" title={activeSummary.label}>
+                        {activeSummary.processing ? "Trimming" : "Exporting"} {activeSummary.label}
+                      </span>
+                    </div>
+                    <div className="export-activity-right">
+                      <span className="export-activity-pct">
+                        {activeSummary.known ? `${activeSummary.percent}%` : "Starting…"}
+                      </span>
+                      <button
+                        type="button"
+                        className="icon-btn icon-btn-sm"
+                        onClick={handleOpenFolder}
+                        title="Open output folder"
+                        aria-label="Open output folder"
+                      >
+                        <FolderOpen size={13} strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className={`progress progress-lg${activeSummary.known ? "" : " progress-indeterminate"}`}>
+                    <div
+                      className={`progress-fill${activeSummary.processing ? " is-processing" : ""}`}
+                      style={
+                        activeSummary.known
+                          ? { width: `${Math.max(2, activeSummary.percent)}%` }
+                          : undefined
+                      }
+                    />
+                  </div>
+                  {activeSummary.speedBps || activeSummary.etaSecs ? (
+                    <div className="export-activity-meta">
+                      {activeSummary.speedBps ? <span>{formatSpeed(activeSummary.speedBps)}</span> : null}
+                      {activeSummary.etaSecs ? <span>ETA {formatEta(activeSummary.etaSecs)}</span> : null}
+                      <span>
+                        {activeSummary.count} {activeSummary.count === 1 ? "clip active" : "clips active"}
+                      </span>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+
+              <ClipToolbar
+                video={video}
+                quality={quality}
+                format={format}
+                precise={precise}
+                namingTemplate={namingTemplate}
+                mergeCuts={mergeCuts}
+                clipCount={clips.length}
+                busy={exporting}
+                isMobile={isMobile}
+                onQuality={changeQuality}
+                onFormat={changeFormat}
+                onPrecise={changePrecise}
+                onNamingTemplate={changeNamingTemplate}
+                onMergeCuts={changeMergeCuts}
+                onExport={downloadAll}
+              />
+
+              <ClipList
+                clips={clips}
+                durationMs={durationMs}
+                activeClipId={activeClipId}
+                tasksByClip={byClip}
+                busy={exporting}
+                onSelect={setActiveClipId}
+                onChange={updateClip}
+                onDelete={deleteClip}
+                onDuplicate={duplicateClip}
+                onPreview={seekToClip}
+                onLoop={loopClip}
+                onDownload={downloadClip}
+                onCancelDownload={handleCancel}
+                onOpenFile={handleOpenFile}
+                onMove={moveClip}
+                onNudge={nudgeClip}
+                onSnap={snapClip}
+                onAdd={addManualCut}
+                onFixOverlaps={fixOverlaps}
+              />
+
+              {downloadTasks.length > 0 ? (
+                <div className="studio-downloads">
+                  <DownloadManager
+                    tasks={downloadTasks}
+                    activeCount={activeCount}
+                    onCancel={handleCancel}
+                    onRetry={handleRetry}
+                    onRemove={handleRemove}
+                    onOpenFile={handleOpenFile}
+                    onReveal={handleReveal}
+                    onOpenFolder={handleOpenFolder}
+                    onClearFinished={handleClearFinished}
+                  />
+                </div>
+              ) : null}
+            </aside>
+          </div>
+        ) : downloadTasks.length > 0 ? (
+          <div className="studio-downloads studio-downloads-landing">
             <DownloadManager
               tasks={downloadTasks}
               activeCount={activeCount}

@@ -2,9 +2,11 @@ import { memo, useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  Check,
   Copy,
   Crosshair,
   Download,
+  FileVideo,
   Loader2,
   Minus,
   Pencil,
@@ -13,9 +15,16 @@ import {
   Repeat,
   Trash2,
   TriangleAlert,
+  X,
 } from "lucide-react";
 import type { Clip, DownloadTask } from "../types";
-import { formatDuration, formatTimecode, parseTimecode } from "../utils/format";
+import {
+  formatDuration,
+  formatEta,
+  formatSpeed,
+  formatTimecode,
+  parseTimecode,
+} from "../utils/format";
 
 export type ClipEdge = "start" | "end";
 
@@ -32,6 +41,8 @@ interface ClipListProps {
   onPreview: (clip: Clip) => void;
   onLoop: (clip: Clip) => void;
   onDownload: (clip: Clip) => void;
+  onCancelDownload?: (taskId: string) => void;
+  onOpenFile?: (path: string) => void;
   onMove: (id: string, direction: -1 | 1) => void;
   onNudge: (id: string, edge: ClipEdge, deltaMs: number) => void;
   onSnap: (id: string, edge: ClipEdge) => void;
@@ -203,6 +214,8 @@ type ClipRowProps = {
   | "onPreview"
   | "onLoop"
   | "onDownload"
+  | "onCancelDownload"
+  | "onOpenFile"
   | "onMove"
   | "onNudge"
   | "onSnap"
@@ -225,6 +238,8 @@ const ClipRow = memo(function ClipRow({
   onPreview,
   onLoop,
   onDownload,
+  onCancelDownload,
+  onOpenFile,
   onMove,
   onNudge,
   onSnap,
@@ -249,99 +264,131 @@ const ClipRow = memo(function ClipRow({
 
   const isWorking =
     task?.status === "fetching" || task?.status === "processing" || task?.status === "queued";
+  const isCompleted = task?.status === "completed";
+  const knownProgress = Boolean(
+    task && (task.status === "completed" || (task.totalBytes != null && task.totalBytes > 0) || task.progress > 0),
+  );
+  const percent = task ? Math.min(100, Math.round(task.progress * 100)) : 0;
   const localIssue = error ? { message: error, kind: "invalid" as const } : undefined;
   const message = localIssue ?? issue;
 
   return (
     <div
-      className={`clip-grid clip-row${active ? " is-active" : ""}${message ? " has-error" : ""}`}
-      style={{ animationDelay: `${Math.min(index, 8) * 24}ms` }}
+      className={`clip-card${active ? " is-active" : ""}${message ? " has-error" : ""}${isWorking ? " is-downloading" : ""}${isCompleted ? " is-saved" : ""}`}
+      style={{ animationDelay: `${Math.min(index, 8) * 20}ms` }}
       onPointerDown={() => onSelect(clip.id)}
     >
-      <span className="clip-index">{String(index + 1).padStart(2, "0")}</span>
+      <div className="clip-card-top">
+        <span className="clip-index">{String(index + 1).padStart(2, "0")}</span>
 
-      <div className="clip-identity">
-        <div className="clip-name-wrap">
-          <input
-            className="clip-name"
-            value={clip.name}
-            onChange={(event) => onChange(clip.id, { name: event.target.value })}
-            onBlur={() => {
-              if (!clip.name.trim()) {
-                onChange(clip.id, { name: `Clip ${String(index + 1).padStart(2, "0")}` });
-              }
-            }}
-            aria-label="Clip name"
-            title="Click to rename this output file"
-            spellCheck={false}
-          />
-          <Pencil className="rename-pencil" size={10} strokeWidth={2} aria-hidden="true" />
-        </div>
-        {message ? (
-          <span className="clip-issue" role="alert">
-            <b className={`clip-issue-badge badge-${message.kind}`}>
-              <TriangleAlert size={9} strokeWidth={2.4} />
-              {message.kind === "overlap" ? "OVERLAP" : "CHECK"}
-            </b>
-            <span className="clip-issue-text">{message.message}</span>
-            <button
-              type="button"
-              className="clip-fix"
-              title="Trim this cut so it no longer overlaps the previous one"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                onFixOverlaps();
+        <div className="clip-identity">
+          <div className="clip-name-wrap">
+            <input
+              className="clip-name"
+              value={clip.name}
+              onChange={(event) => onChange(clip.id, { name: event.target.value })}
+              onBlur={() => {
+                if (!clip.name.trim()) {
+                  onChange(clip.id, { name: `Clip ${String(index + 1).padStart(2, "0")}` });
+                }
               }}
-            >
-              Fix / trim
-            </button>
-          </span>
-        ) : (
-          <span className={`clip-sub${task ? ` clip-sub-${task.status}` : ""}`}>
-            {task ? statusLabel(task) : `${formatDuration(clip.endMs - clip.startMs)} duration`}
-          </span>
-        )}
+              aria-label="Clip name"
+              title="Click to rename this output file"
+              spellCheck={false}
+            />
+            <Pencil className="rename-pencil" size={10} strokeWidth={2} aria-hidden="true" />
+          </div>
+          {message ? (
+            <span className="clip-issue" role="alert">
+              <b className={`clip-issue-badge badge-${message.kind}`}>
+                <TriangleAlert size={9} strokeWidth={2.4} />
+                {message.kind === "overlap" ? "OVERLAP" : "CHECK"}
+              </b>
+              <span className="clip-issue-text">{message.message}</span>
+              <button
+                type="button"
+                className="clip-fix"
+                title="Trim this cut so it no longer overlaps the previous one"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onFixOverlaps();
+                }}
+              >
+                Fix
+              </button>
+            </span>
+          ) : (
+            <span className={`clip-sub${task ? ` clip-sub-${task.status}` : ""}`}>
+              {task ? statusLabel(task) : formatDuration(clip.endMs - clip.startMs)}
+            </span>
+          )}
+        </div>
+
+        <span className="clip-length-pill">{formatDuration(clip.endMs - clip.startMs)}</span>
       </div>
 
-      <TimeField
-        label="Start"
-        edge="start"
-        valueMs={clip.startMs}
-        commit={commitStart}
-        onErrorChange={setError}
-        onNudge={(edge, delta) => onNudge(clip.id, edge, delta)}
-        onSnap={(edge) => onSnap(clip.id, edge)}
-      />
-      <TimeField
-        label="End"
-        edge="end"
-        valueMs={clip.endMs}
-        commit={commitEnd}
-        onErrorChange={setError}
-        onNudge={(edge, delta) => onNudge(clip.id, edge, delta)}
-        onSnap={(edge) => onSnap(clip.id, edge)}
-      />
-
-      <div className="clip-duration">
-        <span className="field-label">Length</span>
-        <span className="clip-duration-value">{formatDuration(clip.endMs - clip.startMs)}</span>
+      <div className="clip-card-controls">
+        <TimeField
+          label="In"
+          edge="start"
+          valueMs={clip.startMs}
+          commit={commitStart}
+          onErrorChange={setError}
+          onNudge={(edge, delta) => onNudge(clip.id, edge, delta)}
+          onSnap={(edge) => onSnap(clip.id, edge)}
+        />
+        <TimeField
+          label="Out"
+          edge="end"
+          valueMs={clip.endMs}
+          commit={commitEnd}
+          onErrorChange={setError}
+          onNudge={(edge, delta) => onNudge(clip.id, edge, delta)}
+          onSnap={(edge) => onSnap(clip.id, edge)}
+        />
       </div>
 
-      <div className="clip-actions">
+      {isWorking && task ? (
+        <div className="clip-inline-progress" aria-label={`Download progress for ${clip.name}`}>
+          <div className={`progress progress-sm${knownProgress ? "" : " progress-indeterminate"}`}>
+            <div
+              className={`progress-fill${task.status === "processing" ? " is-processing" : ""}`}
+              style={knownProgress ? { width: `${Math.max(2, percent)}%` } : undefined}
+            />
+          </div>
+          <div className="clip-inline-progress-meta">
+            <span>
+              {task.status === "queued"
+                ? "Queued"
+                : task.status === "processing"
+                  ? knownProgress
+                    ? `Trimming ${percent}%`
+                    : "Processing…"
+                  : knownProgress
+                    ? `${percent}%`
+                    : "Downloading…"}
+              {task.speedBps && task.speedBps > 0 ? ` · ${formatSpeed(task.speedBps)}` : ""}
+              {task.etaSecs && task.etaSecs > 0 ? ` · ETA ${formatEta(task.etaSecs)}` : ""}
+            </span>
+            {onCancelDownload ? (
+              <button
+                type="button"
+                className="clip-inline-cancel"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCancelDownload(task.id);
+                }}
+              >
+                <X size={11} strokeWidth={2.2} /> Cancel
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="clip-card-foot">
         <div className="clip-action-group">
-          <button
-            type="button"
-            className="icon-btn icon-btn-sm"
-            title="Preview / loop this cut [L]"
-            aria-label="Preview and loop clip"
-            onClick={(event) => {
-              event.stopPropagation();
-              onLoop(clip);
-            }}
-          >
-            <Repeat size={13} strokeWidth={2} />
-          </button>
           <button
             type="button"
             className="icon-btn icon-btn-sm"
@@ -357,23 +404,48 @@ const ClipRow = memo(function ClipRow({
           <button
             type="button"
             className="icon-btn icon-btn-sm"
-            title="Download this cut on its own"
-            aria-label="Download clip"
-            disabled={busy || isWorking}
+            title="Loop this cut [L]"
+            aria-label="Preview and loop clip"
             onClick={(event) => {
               event.stopPropagation();
-              onDownload(clip);
+              onLoop(clip);
             }}
           >
-            {isWorking ? (
-              <Loader2 className="spin" size={13} />
-            ) : (
-              <Download size={13} strokeWidth={2} />
-            )}
+            <Repeat size={13} strokeWidth={2} />
           </button>
+          {isCompleted && task?.outputPath && onOpenFile ? (
+            <button
+              type="button"
+              className="btn btn-quiet btn-xs clip-open-btn"
+              title="Open saved clip"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenFile(task.outputPath as string);
+              }}
+            >
+              <Check size={11} strokeWidth={2.4} />
+              <FileVideo size={11} strokeWidth={2} /> Open
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="icon-btn icon-btn-sm"
+              title="Download this cut on its own"
+              aria-label="Download clip"
+              disabled={busy || isWorking}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDownload(clip);
+              }}
+            >
+              {isWorking ? (
+                <Loader2 className="spin" size={13} />
+              ) : (
+                <Download size={13} strokeWidth={2} />
+              )}
+            </button>
+          )}
         </div>
-
-        <span className="clip-action-divider" aria-hidden="true" />
 
         <div className="clip-action-group">
           <button
@@ -487,42 +559,34 @@ export const ClipList = memo(function ClipList(props: ClipListProps) {
           </div>
         </div>
       ) : (
-        <>
-          <div className="clip-grid clip-head" aria-hidden="true">
-            <span>#</span>
-            <span>Clip name</span>
-            <span>Start controls</span>
-            <span>End controls</span>
-            <span>Length</span>
-            <span className="clip-head-actions">Actions</span>
-          </div>
-          <div className="clip-list">
-            {clips.map((clip, index) => (
-              <ClipRow
-                key={clip.id}
-                clip={clip}
-                index={index}
-                count={clips.length}
-                durationMs={props.durationMs}
-                active={clip.id === props.activeClipId}
-                task={tasksByClip.get(clip.id)}
-                busy={props.busy}
-                issue={issues.get(clip.id)}
-                onSelect={props.onSelect}
-                onChange={props.onChange}
-                onDelete={props.onDelete}
-                onDuplicate={props.onDuplicate}
-                onPreview={props.onPreview}
-                onLoop={props.onLoop}
-                onDownload={props.onDownload}
-                onMove={props.onMove}
-                onNudge={props.onNudge}
-                onSnap={props.onSnap}
-                onFixOverlaps={props.onFixOverlaps}
-              />
-            ))}
-          </div>
-        </>
+        <div className="clip-list">
+          {clips.map((clip, index) => (
+            <ClipRow
+              key={clip.id}
+              clip={clip}
+              index={index}
+              count={clips.length}
+              durationMs={props.durationMs}
+              active={clip.id === props.activeClipId}
+              task={tasksByClip.get(clip.id)}
+              busy={props.busy}
+              issue={issues.get(clip.id)}
+              onSelect={props.onSelect}
+              onChange={props.onChange}
+              onDelete={props.onDelete}
+              onDuplicate={props.onDuplicate}
+              onPreview={props.onPreview}
+              onLoop={props.onLoop}
+              onDownload={props.onDownload}
+              onCancelDownload={props.onCancelDownload}
+              onOpenFile={props.onOpenFile}
+              onMove={props.onMove}
+              onNudge={props.onNudge}
+              onSnap={props.onSnap}
+              onFixOverlaps={props.onFixOverlaps}
+            />
+          ))}
+        </div>
       )}
     </section>
   );

@@ -1,5 +1,5 @@
-import { memo, useMemo, useRef } from "react";
-import { ArrowRight, Link2, Loader2, PlaySquare, Tv } from "lucide-react";
+import { memo, useCallback, useMemo, useRef } from "react";
+import { ArrowRight, ClipboardPaste, Link2, Loader2, PlaySquare, Tv, X } from "lucide-react";
 import type { VideoSource } from "../types";
 
 interface UrlBarProps {
@@ -7,6 +7,7 @@ interface UrlBarProps {
   loading: boolean;
   error: string | null;
   disabled?: boolean;
+  compact?: boolean;
   isMobile?: boolean;
   onChange: (value: string) => void;
   onSubmit: () => void;
@@ -25,6 +26,7 @@ export const UrlBar = memo(function UrlBar({
   loading,
   error,
   disabled,
+  compact = false,
   isMobile = false,
   onChange,
   onSubmit,
@@ -32,10 +34,25 @@ export const UrlBar = memo(function UrlBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const detected = useMemo(() => detectInputSource(value), [value]);
 
+  const handlePaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        onChange(text.trim());
+        inputRef.current?.focus();
+      }
+    } catch {
+      inputRef.current?.focus();
+    }
+  }, [onChange]);
+
   return (
-    <section className="urlbar-wrap" aria-label="Load a YouTube video or Twitch VOD">
+    <section
+      className={`urlbar-wrap${compact ? " urlbar-wrap-compact" : ""}`}
+      aria-label="Load a YouTube video or Twitch VOD"
+    >
       <form
-        className={`urlbar${detected ? ` urlbar-${detected}` : ""}`}
+        className={`urlbar${detected ? ` urlbar-${detected}` : ""}${compact ? " urlbar-compact" : ""}`}
         onSubmit={(event) => {
           event.preventDefault();
           if (!loading && value.trim()) onSubmit();
@@ -43,11 +60,11 @@ export const UrlBar = memo(function UrlBar({
       >
         <span className="urlbar-icon" aria-hidden="true">
           {detected === "twitch" ? (
-            <Tv size={17} strokeWidth={1.85} />
+            <Tv size={16} strokeWidth={1.85} />
           ) : detected === "youtube" ? (
-            <PlaySquare size={17} strokeWidth={1.85} />
+            <PlaySquare size={16} strokeWidth={1.85} />
           ) : (
-            <Link2 size={17} strokeWidth={1.75} />
+            <Link2 size={16} strokeWidth={1.75} />
           )}
         </span>
         <input
@@ -55,7 +72,7 @@ export const UrlBar = memo(function UrlBar({
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder={isMobile ? "Paste YouTube or Twitch link…" : "Paste a YouTube video or Twitch VOD link..."}
+          placeholder={isMobile ? "Paste YouTube or Twitch link…" : "Paste a YouTube video, Shorts, or Twitch VOD URL…"}
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
@@ -67,6 +84,30 @@ export const UrlBar = memo(function UrlBar({
           <span className={`urlbar-badge urlbar-badge-${detected}`}>
             {detected === "twitch" ? "Twitch" : "YouTube"}
           </span>
+        ) : null}
+        {value.trim() && !loading ? (
+          <button
+            type="button"
+            className="urlbar-util-btn"
+            onClick={() => {
+              onChange("");
+              inputRef.current?.focus();
+            }}
+            title="Clear URL"
+            aria-label="Clear URL"
+          >
+            <X size={14} strokeWidth={2} />
+          </button>
+        ) : !loading && !isMobile ? (
+          <button
+            type="button"
+            className="urlbar-util-btn urlbar-paste-btn"
+            onClick={() => void handlePaste()}
+            title="Paste link from clipboard"
+          >
+            <ClipboardPaste size={13} strokeWidth={2} />
+            <span>Paste</span>
+          </button>
         ) : null}
         <button
           type="submit"
@@ -91,13 +132,19 @@ export const UrlBar = memo(function UrlBar({
         </p>
       ) : null}
 
-      <div className="urlbar-meta">
-        <span className={error ? "error-text" : "urlbar-hint"}>
-          {error ?? "youtube.com · youtu.be · Shorts · twitch.tv/videos · clips.twitch.tv"}
-        </span>
-        <span className="urlbar-meta-sep" aria-hidden="true" />
-        <span className="urlbar-privacy">Nothing uploaded · runs locally</span>
-      </div>
+      {!compact ? (
+        <div className="urlbar-meta">
+          <span className={error ? "error-text" : "urlbar-hint"}>
+            {error ?? "youtube.com · youtu.be · Shorts · twitch.tv/videos · clips.twitch.tv"}
+          </span>
+          <span className="urlbar-meta-sep" aria-hidden="true" />
+          <span className="urlbar-privacy">Local yt-dlp &amp; FFmpeg</span>
+        </div>
+      ) : error ? (
+        <div className="urlbar-meta">
+          <span className="error-text">{error}</span>
+        </div>
+      ) : null}
     </section>
   );
 });

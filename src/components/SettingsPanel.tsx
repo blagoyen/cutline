@@ -391,7 +391,7 @@ export const SettingsPanel = memo(function SettingsPanel({
               </div>
               <div className="about-row">
                 <span>Version</span>
-                <b>{version || "2.5.0"}</b>
+                <b>{version || "3.0.0"}</b>
               </div>
             </section>
           </div>

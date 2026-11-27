@@ -1,0 +1,895 @@
+/* ==========================================================================
+   Cutline Desktop v3.0 — Tactile Matte Graphite Studio
+   Clean, fast, non-AI-looking pro tool styling & two-column workstation.
+   ========================================================================== */
+
+body {
+  background: var(--background);
+}
+
+/* Crisp topbar without glass haze or serif wordmark */
+.topbar {
+  height: 50px;
+  padding: 0 clamp(16px, 2.2vw, 28px);
+  background: var(--background);
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-name {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+/* Crisp monochrome primary CTAs (no neon glow, no purple) */
+.btn-primary {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  border-color: var(--cta-bg);
+  border-radius: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--cta-bg-hover);
+  border-color: var(--cta-bg-hover);
+  box-shadow: none;
+}
+
+.btn-ghost,
+.btn-quiet {
+  border-radius: 7px;
+}
+
+.icon-btn {
+  border-radius: 7px;
+}
+
+/* Workspace container */
+.workspace {
+  max-width: 1580px;
+  padding: 16px clamp(16px, 2.2vw, 28px) 36px;
+}
+
+/* ==========================================================================
+   Compact Desktop Launcher (Landing State)
+   ========================================================================== */
+.app-shell.is-landing .workspace {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100vh - 50px);
+  padding-top: 28px;
+  padding-bottom: 24px;
+}
+
+.launcher-stage {
+  width: 100%;
+  max-width: 780px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.launcher-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.launcher-hero-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.launcher-title {
+  font-family: var(--font-sans);
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.launcher-sub {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 60ch;
+}
+
+.launcher-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.source-pill-youtube {
+  color: var(--source-youtube);
+  border-color: color-mix(in srgb, var(--source-youtube) 30%, var(--border));
+  background: var(--source-youtube-soft);
+}
+
+.source-pill-twitch {
+  color: var(--text-primary);
+}
+
+/* URL Bar + Paste button */
+.urlbar-wrap {
+  padding: 0;
+  border-bottom: 0;
+}
+
+.urlbar-wrap-compact {
+  margin-bottom: 14px;
+}
+
+.urlbar {
+  min-height: 48px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  align-items: center;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: none;
+}
+
+.urlbar-compact {
+  min-height: 42px;
+  padding: 3px;
+}
+
+.urlbar:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+.urlbar-icon {
+  width: 38px;
+  height: 36px;
+  border-right: 0;
+  color: var(--label);
+}
+
+.urlbar input {
+  font-size: 13.5px;
+  padding: 0 8px 0 2px;
+  height: 36px;
+}
+
+.urlbar-compact input {
+  font-size: 13px;
+  height: 32px;
+}
+
+.urlbar-util-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 500;
+  flex: none;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.urlbar-util-btn:hover {
+  background: var(--muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.urlbar-submit {
+  margin: 0;
+  height: 36px;
+  min-width: 104px;
+  padding: 0 16px;
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+.urlbar-compact .urlbar-submit {
+  height: 32px;
+  min-width: 94px;
+}
+
+.urlbar-meta {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+/* Keyboard shortcuts strip on landing */
+.launcher-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+
+.shortcut-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.shortcut-chip kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.studio-downloads-landing {
+  width: 100%;
+  max-width: 780px;
+  margin: 18px auto 0;
+}
+
+/* ==========================================================================
+   Two-Column Pro Studio Layout (>= 1180px)
+   ========================================================================== */
+.studio-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(380px, 0.92fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.studio-main,
+.studio-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+@media (max-width: 1179px) {
+  .studio-split {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Compact session strip */
+.session-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+/* Crisp studio panels (no glassmorphism blur, clean 1px hairlines) */
+.stage,
+.timeline,
+.clip-toolbar,
+.clips,
+.downloads {
+  margin-top: 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.video-head {
+  margin-bottom: 10px;
+}
+
+.video-title {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.frame {
+  border-radius: 8px;
+  max-height: 460px;
+}
+
+/* Ergonomic wrap-safe transport deck (never overlaps or clips in 2-col split) */
+.deck-transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 10px;
+  height: auto;
+  min-height: 0;
+  padding: 6px 0 8px;
+}
+
+.deck-left,
+.deck-right {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.deck-volume {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deck-volume input[type="range"] {
+  width: 64px;
+}
+
+.deck-speed {
+  flex: none;
+}
+
+.deck-speed select {
+  width: 56px;
+  min-width: 56px;
+  height: 28px;
+  padding: 0 20px 0 8px;
+  font-size: 11px;
+}
+
+.deck-time {
+  margin-left: 0;
+  flex: none;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.deck-utility {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  height: auto;
+  margin-top: 2px;
+  padding-top: 10px;
+}
+
+/* Tighter, sharper timeline deck */
+.timeline-deck {
+  border-radius: 8px;
+}
+
+.timeline-dot,
+.timeline-readout-cell.is-set .timeline-readout-dot,
+.playhead,
+.playhead-cap {
+  box-shadow: none;
+}
+
+.selection {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.selection:hover,
+.selection.is-active {
+  box-shadow: none;
+}
+
+.pending {
+  border-radius: 6px;
+}
+
+.deck-playhead {
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* ==========================================================================
+   Live Export Activity Bar (Always visible at top of right rail)
+   ========================================================================== */
+.export-activity-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 22%, var(--border));
+  background: var(--surface-2);
+}
+
+.export-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.export-activity-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.export-activity-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-activity-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.export-activity-pct {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.export-activity-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Export Toolbar in Right Rail
+   ========================================================================== */
+.clip-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.toolbar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.toolbar-field-template {
+  grid-column: 1 / -1;
+}
+
+.switch-field {
+  grid-column: 1 / -1;
+  height: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.toolbar-export {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.toolbar-export .merge-toggle {
+  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.export-cta {
+  width: 100%;
+  height: 40px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.toolbar-footnote {
+  padding-top: 8px;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Card-Based Cuts List (Zero clipping at any rail width + Inline Progress)
+   ========================================================================== */
+.clip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.clip-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-2);
+  transition: border-color 0.14s ease, background-color 0.14s ease;
+}
+
+.clip-card:hover {
+  border-color: var(--border-strong);
+}
+
+.clip-card.is-active {
+  border-color: color-mix(in srgb, var(--text-primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--surface-2) 85%, var(--text-primary) 3%);
+}
+
+.clip-card.is-downloading {
+  border-color: color-mix(in srgb, var(--text-primary) 28%, var(--border));
+}
+
+.clip-card.is-saved {
+  border-color: color-mix(in srgb, var(--success) 38%, var(--border));
+}
+
+.clip-card.has-error {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+}
+
+.clip-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.clip-card .clip-index {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  flex: none;
+}
+
+.clip-card.is-active .clip-index {
+  background: var(--cta-bg);
+  border-color: var(--cta-bg);
+  color: var(--cta-fg);
+}
+
+.clip-card .clip-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.clip-card .clip-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clip-card .clip-name {
+  padding: 2px 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.clip-card .clip-sub {
+  padding-left: 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+
+.clip-length-pill {
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.clip-card-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.clip-card .time-control {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.clip-card .time-input {
+  height: 30px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  min-width: 0;
+}
+
+.clip-card .time-input:focus {
+  box-shadow: none;
+}
+
+.clip-card .time-segment {
+  display: inline-flex;
+  border-left: 1px solid var(--border-soft);
+  flex: none;
+}
+
+.clip-card .time-seg-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 30px;
+  border: 0;
+  border-left: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.clip-card .time-seg-btn:first-child {
+  border-left: 0;
+}
+
+.clip-card .time-seg-btn:hover {
+  background: var(--muted);
+  color: var(--text-primary);
+}
+
+/* Inline clip progress bar */
+.clip-inline-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.clip-inline-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.clip-inline-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.clip-inline-cancel:hover {
+  color: var(--danger);
+  background: var(--accent-soft);
+}
+
+.clip-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.clip-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.clip-open-btn {
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Upgraded High-Visibility Progress Bars & Download Queue
+   ========================================================================== */
+.progress {
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  overflow: hidden;
+}
+
+.progress-sm {
+  height: 5px;
+}
+
+.progress-lg {
+  height: 7px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--cta-bg);
+  transition: width 0.22s ease-out;
+}
+
+.progress-fill.is-processing {
+  background: var(--warning);
+}
+
+.dl-list {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dl-row {
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-2);
+}
+
+.dl-row.is-active-dl {
+  border-color: color-mix(in srgb, var(--text-primary) 25%, var(--border));
+}
+
+.dl-row.is-done {
+  border-color: color-mix(in srgb, var(--success) 30%, var(--border));
+}
+
+.dl-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--label);
+  font-variant-numeric: tabular-nums;
+}
+
+.dl-progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.dl-progress-block .progress {
+  margin-top: 0;
+}
+
+.dl-stats {
+  margin-top: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  gap: 4px 10px;
+}
+
+.dl-percent {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dl-ready-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 36%, transparent);
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: none;
+}
+
+.status-fetching {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.status-processing {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+}
+
+/* Settings drawer sans-serif title */
+.drawer-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Footer */
+.app-footer {
+  margin-top: 24px;
+  padding-top: 12px;
+}

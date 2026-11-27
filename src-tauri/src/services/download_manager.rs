@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
+use tokio::io::{AsyncRead, AsyncReadExt};
 use tokio::process::Command;
 use tokio::sync::{mpsc, Notify};
 
@@ -68,6 +68,7 @@ struct Progress {
     estimate: Option<u64>,
     speed: Option<f64>,
     eta: Option<u64>,
+    ratio: Option<f32>,
 }
 
 impl Progress {
@@ -78,6 +79,7 @@ impl Progress {
             estimate: None,
             speed: None,
             eta: None,
+            ratio: None,
         }
     }
 }
@@ -121,17 +123,111 @@ fn parse_progress(line: &str) -> Option<Progress> {
     let rest = line.strip_prefix(PROGRESS_PREFIX)?;
     // status|downloaded|total|estimate|speed|eta — parsed without allocating.
     let mut parts = rest.split('|').skip(1);
-    let downloaded = parts.next()?;
-    let total = parts.next()?;
-    let estimate = parts.next()?;
-    let speed = parts.next()?;
-    let eta = parts.next()?;
+    let downloaded = number(parts.next()?).map(|v| v as u64);
+    let total = number(parts.next()?).map(|v| v as u64);
+    let estimate = number(parts.next()?).map(|v| v as u64);
+    let speed = number(parts.next()?);
+    let eta = number(parts.next()?).map(|v| v as u64);
+    let denom = total.or(estimate);
+    let ratio = match (downloaded, denom) {
+        (Some(d), Some(t)) if t > 0 => Some((d as f32 / t as f32).clamp(0.0, 1.0)),
+        _ => None,
+    };
     Some(Progress {
-        downloaded: number(downloaded).map(|v| v as u64),
-        total: number(total).map(|v| v as u64),
-        estimate: number(estimate).map(|v| v as u64),
-        speed: number(speed),
-        eta: number(eta).map(|v| v as u64),
+        downloaded,
+        total,
+        estimate,
+        speed,
+        eta,
+        ratio,
+    })
+}
+
+fn parse_hms_ms(raw: &str) -> Option<u64> {
+    let mut parts = raw.trim().split(':');
+    let h: f64 = parts.next()?.parse().ok()?;
+    let m: f64 = parts.next()?.parse().ok()?;
+    let s: f64 = parts.next()?.parse().ok()?;
+    if !h.is_finite() || !m.is_finite() || !s.is_finite() || h < 0.0 || m < 0.0 || s < 0.0 {
+        return None;
+    }
+    Some(((h * 3600.0 + m * 60.0 + s) * 1000.0).round() as u64)
+}
+
+fn parse_size_bytes(raw: &str) -> Option<u64> {
+    let trimmed = raw.trim();
+    let idx = trimmed
+        .find(|c: char| !c.is_ascii_digit() && c != '.')
+        .unwrap_or(trimmed.len());
+    let val: f64 = trimmed[..idx].parse().ok()?;
+    if !val.is_finite() || val < 0.0 {
+        return None;
+    }
+    let unit = trimmed[idx..].trim().to_ascii_lowercase();
+    let mult = match unit.as_str() {
+        "kib" | "kb" | "k" => 1024.0,
+        "mib" | "mb" | "m" => 1024.0 * 1024.0,
+        "gib" | "gb" | "g" => 1024.0 * 1024.0 * 1024.0,
+        _ => 1.0,
+    };
+    Some((val * mult).round() as u64)
+}
+
+/// Parse live FFmpeg progress lines (`frame=... size=4096kB time=00:00:12.48 bitrate=2689kbits/s speed=3.8x`)
+/// emitted on stderr while `yt-dlp --download-sections` trims a clip.
+fn parse_ffmpeg_progress(line: &str, section_duration_ms: u64) -> Option<Progress> {
+    if section_duration_ms == 0 || !line.contains("time=") {
+        return None;
+    }
+    let time_pos = line.find("time=")?;
+    let time_token = line[time_pos + 5..].split_whitespace().next()?;
+    let cur_ms = parse_hms_ms(time_token)?;
+    let ratio = (cur_ms as f32 / section_duration_ms as f32).clamp(0.01, 0.99);
+
+    let downloaded = line
+        .find("size=")
+        .and_then(|pos| line[pos + 5..].trim_start().split_whitespace().next())
+        .and_then(parse_size_bytes);
+
+    let speed_x = line
+        .find("speed=")
+        .and_then(|pos| line[pos + 6..].trim_start().split_whitespace().next())
+        .and_then(|tok| tok.trim_end_matches('x').parse::<f64>().ok())
+        .filter(|v| v.is_finite() && *v > 0.01);
+
+    let bitrate_bps = line
+        .find("bitrate=")
+        .and_then(|pos| line[pos + 8..].trim_start().split_whitespace().next())
+        .and_then(|tok| tok.trim_end_matches("kbits/s").parse::<f64>().ok())
+        .filter(|v| v.is_finite() && *v > 0.0)
+        .map(|kbps| kbps * 125.0);
+
+    let speed = match (bitrate_bps, speed_x) {
+        (Some(bps), Some(sx)) => Some(bps * sx),
+        (Some(bps), None) => Some(bps),
+        _ => None,
+    };
+
+    let eta = speed_x.map(|sx| {
+        let rem_secs = section_duration_ms.saturating_sub(cur_ms) as f64 / 1000.0;
+        (rem_secs / sx).ceil() as u64
+    });
+
+    let estimate = downloaded.and_then(|d| {
+        if ratio > 0.02 {
+            Some((d as f64 / ratio as f64).round() as u64)
+        } else {
+            None
+        }
+    });
+
+    Some(Progress {
+        downloaded,
+        total: None,
+        estimate,
+        speed,
+        eta,
+        ratio: Some(ratio),
     })
 }
 
@@ -286,21 +382,39 @@ async fn concat_sections(
     Ok(())
 }
 
-async fn read_lines<R>(reader: R, tx: mpsc::Sender<ChildLine>, from_stdout: bool)
+/// Read child stdout/stderr splitting on BOTH `\n` and `\r` so FFmpeg's live
+/// carriage-return progress updates arrive immediately instead of buffering until exit.
+async fn read_lines<R>(mut reader: R, tx: mpsc::Sender<ChildLine>, from_stdout: bool)
 where
     R: AsyncRead + Unpin + Send + 'static,
 {
-    let mut lines = BufReader::new(reader).lines();
-    while let Ok(Some(text)) = lines.next_line().await {
-        if tx
-            .send(ChildLine {
-                text,
-                from_stdout,
-            })
-            .await
-            .is_err()
-        {
-            break;
+    let mut chunk = [0u8; 4096];
+    let mut buf: Vec<u8> = Vec::with_capacity(512);
+    loop {
+        match reader.read(&mut chunk).await {
+            Ok(0) => {
+                if !buf.is_empty() {
+                    let text = String::from_utf8_lossy(&buf).into_owned();
+                    let _ = tx.send(ChildLine { text, from_stdout }).await;
+                }
+                break;
+            }
+            Ok(n) => {
+                for &b in &chunk[..n] {
+                    if b == b'\n' || b == b'\r' {
+                        if !buf.is_empty() {
+                            let text = String::from_utf8_lossy(&buf).into_owned();
+                            buf.clear();
+                            if tx.send(ChildLine { text, from_stdout }).await.is_err() {
+                                return;
+                            }
+                        }
+                    } else if buf.len() < 4096 {
+                        buf.push(b);
+                    }
+                }
+            }
+            Err(_) => break,
         }
     }
 }
@@ -546,13 +660,14 @@ impl DownloadManager {
         }
         drop(tx);
 
+        let section_duration_ms = section.end_ms.saturating_sub(section.start_ms);
         let mut progress: Option<Progress> = None;
         // Set when a new progress line arrives; the ticker only emits fresh data.
         let mut progress_dirty = false;
         let mut stage = DownloadStatus::Fetching;
         let mut stderr_tail: VecDeque<String> = VecDeque::new();
         let mut cancelled = false;
-        let mut ticker = tokio::time::interval(Duration::from_millis(250));
+        let mut ticker = tokio::time::interval(Duration::from_millis(200));
         ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
         loop {
@@ -583,6 +698,11 @@ impl DownloadManager {
                                     progress = Some(parsed);
                                     progress_dirty = true;
                                 }
+                                continue;
+                            }
+                            if let Some(ff) = parse_ffmpeg_progress(&line.text, section_duration_ms) {
+                                progress = Some(ff);
+                                progress_dirty = true;
                                 continue;
                             }
                             if stage == DownloadStatus::Fetching && stage_marker(&line.text) {
@@ -803,21 +923,28 @@ impl DownloadManager {
                 return;
             }
             task.status = stage;
-            task.downloaded_bytes = progress.downloaded;
-            task.total_bytes = progress.total.or(progress.estimate);
-            task.speed_bps = progress.speed;
+            if progress.downloaded.is_some() {
+                task.downloaded_bytes = progress.downloaded;
+            }
+            if let Some(tot) = progress.total.or(progress.estimate) {
+                task.total_bytes = Some(tot);
+            }
+            if progress.speed.is_some() {
+                task.speed_bps = progress.speed;
+            }
             task.eta_secs = progress.eta;
-            let local = match (progress.downloaded, task.total_bytes) {
+            let local = progress.ratio.unwrap_or_else(|| match (task.downloaded_bytes, task.total_bytes) {
                 (Some(done), Some(total)) if total > 0 => {
                     (done as f32 / total as f32).clamp(0.0, 1.0)
                 }
                 _ => 0.0,
-            };
-            task.progress = if total_sections > 1 {
+            });
+            let scaled = if total_sections > 1 {
                 ((section_index as f32 + local) / total_sections as f32).clamp(0.0, 0.995)
             } else {
                 local.clamp(0.0, 0.995)
             };
+            task.progress = task.progress.max(scaled);
             task.clone()
         };
         self.emit_snapshot(snapshot);

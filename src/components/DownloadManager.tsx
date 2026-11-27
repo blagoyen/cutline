@@ -57,14 +57,26 @@ const DownloadRow = memo(function DownloadRow({
   onReveal,
 }: DownloadRowProps) {
   const active = task.status === "fetching" || task.status === "processing";
+  const queued = task.status === "queued";
   const finished = task.status === "completed";
   const retryable = task.status === "failed" || task.status === "cancelled";
-  const knownProgress = task.totalBytes != null && task.totalBytes > 0;
-  const percent = knownProgress ? Math.min(100, Math.round(task.progress * 100)) : 0;
+  const knownProgress =
+    finished || (task.totalBytes != null && task.totalBytes > 0) || task.progress > 0;
+  const percent = finished ? 100 : knownProgress ? Math.min(100, Math.round(task.progress * 100)) : 0;
   const finalSize = task.fileSize ?? (task.totalBytes && task.totalBytes > 0 ? task.totalBytes : null);
+  const stageLabel =
+    task.status === "fetching"
+      ? knownProgress
+        ? `Downloading · ${percent}%`
+        : "Downloading"
+      : task.status === "processing"
+        ? percent > 0 && percent < 100
+          ? `Trimming · ${percent}%`
+          : "Processing"
+        : STATUS_LABEL[task.status];
 
   return (
-    <div className={`dl-row${finished ? " is-done" : ""}`}>
+    <div className={`dl-row${finished ? " is-done" : ""}${active ? " is-active-dl" : ""}`}>
       <div className="dl-head">
         <div className="dl-title-group">
           <span className="dl-name" title={task.clipName}>
@@ -72,13 +84,14 @@ const DownloadRow = memo(function DownloadRow({
           </span>
           {finished ? (
             <span className="dl-ready-badge">
-              <Check size={10} strokeWidth={2.6} /> Ready
+              <Check size={10} strokeWidth={2.6} /> Saved
             </span>
-          ) : null}
-          <span className={`status status-${task.status}`}>
-            {active ? <Loader2 className="spin" size={10} strokeWidth={2.4} /> : null}
-            {STATUS_LABEL[task.status]}
-          </span>
+          ) : (
+            <span className={`status status-${task.status}`}>
+              {active ? <Loader2 className="spin" size={10} strokeWidth={2.4} /> : null}
+              {stageLabel}
+            </span>
+          )}
         </div>
         <div className="dl-actions">
           {finished && task.outputPath ? (
@@ -89,7 +102,7 @@ const DownloadRow = memo(function DownloadRow({
                 onClick={() => onOpenFile(task.outputPath as string)}
                 title="Open the exported file"
               >
-                <FileVideo size={12} strokeWidth={2} /> Open file
+                <FileVideo size={12} strokeWidth={2} /> Open
               </button>
               <button
                 type="button"
@@ -112,7 +125,7 @@ const DownloadRow = memo(function DownloadRow({
               <RotateCcw size={12} strokeWidth={2} /> Retry
             </button>
           ) : null}
-          {active || task.status === "queued" ? (
+          {active || queued ? (
             <button
               type="button"
               className="btn btn-quiet btn-xs"
@@ -143,8 +156,12 @@ const DownloadRow = memo(function DownloadRow({
         <span>{qualityLabel(task.quality)}</span>
         <span className="dl-dot">·</span>
         <span>{task.format.toUpperCase()}</span>
-        <span className="dl-dot">·</span>
-        <span>{formatBytes(finalSize)}</span>
+        {finalSize ? (
+          <>
+            <span className="dl-dot">·</span>
+            <span>{formatBytes(finalSize)}</span>
+          </>
+        ) : null}
         {task.durationMs ? (
           <>
             <span className="dl-dot">·</span>
@@ -159,21 +176,29 @@ const DownloadRow = memo(function DownloadRow({
         ) : null}
       </div>
 
-      {active || task.status === "queued" ? (
-        <div className={`progress${knownProgress ? "" : " progress-indeterminate"}`}>
-          <div
-            className="progress-fill"
-            style={knownProgress ? { width: `${percent}%` } : undefined}
-          />
-        </div>
-      ) : null}
-
-      {active ? (
-        <div className="dl-stats">
-          <span>{formatBytes(task.downloadedBytes)} downloaded</span>
-          <span>{formatSpeed(task.speedBps)}</span>
-          <span>ETA {formatEta(task.etaSecs)}</span>
-          {knownProgress ? <span>{percent}%</span> : null}
+      {active || queued ? (
+        <div className="dl-progress-block">
+          <div className={`progress progress-lg${knownProgress ? "" : " progress-indeterminate"}`}>
+            <div
+              className={`progress-fill${task.status === "processing" ? " is-processing" : ""}`}
+              style={knownProgress ? { width: `${Math.max(2, percent)}%` } : undefined}
+            />
+          </div>
+          <div className="dl-stats">
+            <span className="dl-percent">{knownProgress ? `${percent}%` : queued ? "Queued" : "Starting…"}</span>
+            {task.downloadedBytes != null && task.downloadedBytes > 0 ? (
+              <span>
+                {formatBytes(task.downloadedBytes)}
+                {task.totalBytes && task.totalBytes > 0 ? ` / ${formatBytes(task.totalBytes)}` : ""}
+              </span>
+            ) : null}
+            {task.speedBps != null && task.speedBps > 0 ? (
+              <span>{formatSpeed(task.speedBps)}</span>
+            ) : null}
+            {task.etaSecs != null && task.etaSecs > 0 ? (
+              <span>ETA {formatEta(task.etaSecs)}</span>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -224,7 +249,9 @@ export const DownloadManager = memo(function DownloadManager({
     const activeTasks = tasks.filter(
       (task) => task.status === "fetching" || task.status === "processing",
     );
-    const withProgress = activeTasks.filter((task) => task.totalBytes && task.totalBytes > 0);
+    const withProgress = activeTasks.filter(
+      (task) => (task.totalBytes != null && task.totalBytes > 0) || task.progress > 0,
+    );
     const overall =
       withProgress.length > 0
         ? withProgress.reduce((sum, task) => sum + task.progress, 0) / withProgress.length

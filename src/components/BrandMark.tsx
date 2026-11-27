@@ -23,8 +23,8 @@ export const BrandMark = memo(function BrandMark({
           <stop offset="100%" stopColor="#070708" />
         </linearGradient>
         <linearGradient id={beamId} x1="12" y1="44" x2="52" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor={monochrome ? "#ffffff" : "#6366f1"} />
-          <stop offset="100%" stopColor={monochrome ? "#a1a1aa" : "#a855f7"} />
+          <stop offset="0%" stopColor={monochrome ? "#ffffff" : "#ef4444"} />
+          <stop offset="100%" stopColor={monochrome ? "#a1a1aa" : "#f87171"} />
         </linearGradient>
       </defs>
       <rect
