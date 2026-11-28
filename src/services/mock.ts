@@ -358,7 +358,7 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
         message: "Provider is stopped.",
       } as T;
     case "app_version":
-      return "3.1.0" as T;
+      return "3.1.1" as T;
     case "pick_directory":
       await sleep(300);
       return "D:\\Exports\\Cutline" as T;

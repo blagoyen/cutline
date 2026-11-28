@@ -801,9 +801,7 @@ pub async fn fetch_metadata(
 ) -> Result<VideoInfo, CommandError> {
     let is_tiktok_sound = crate::services::tiktok::is_tiktok_sound_url(url);
     if is_tiktok_sound {
-        if let Ok(info) = crate::services::tiktok::probe_sound(url).await {
-            return Ok(info);
-        }
+        return crate::services::tiktok::probe_sound(url, settings).await;
     }
 
     let bin = binaries::resolve(Tool::YtDlp, settings).ok_or_else(|| {

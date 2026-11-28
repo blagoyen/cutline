@@ -639,12 +639,13 @@ impl DownloadManager {
         tmp_root: &Path,
         tmp_dir: &Path,
     ) -> Result<Option<PathBuf>, CommandError> {
-        let Ok(sound) = crate::services::tiktok::resolve_sound(&task.url).await else {
-            return Ok(None);
-        };
-        let Some(ffmpeg_bin) = binaries::resolve(Tool::Ffmpeg, settings) else {
-            return Ok(None);
-        };
+        let sound = crate::services::tiktok::resolve_sound(&task.url).await?;
+        let ffmpeg_bin = binaries::resolve(Tool::Ffmpeg, settings).ok_or_else(|| {
+            CommandError::new(
+                "FFMPEG_MISSING",
+                "FFmpeg is required to download TikTok sounds. Install it in Settings.",
+            )
+        })?;
 
         let out_path = section_dir.join("clip.mp3");
         let headers = format!(
@@ -749,7 +750,11 @@ impl DownloadManager {
         if status.success() && tokio::fs::metadata(&out_path).await.map(|m| m.len() > 0).unwrap_or(false) {
             return Ok(Some(out_path));
         }
-        Ok(None)
+        Err(CommandError::new(
+            "TIKTOK_SOUND_DOWNLOAD_FAILED",
+            "FFmpeg could not extract the TikTok sound audio.",
+        )
+        .with_detail(stderr_lines.join("\n")))
     }
 
 /// Download one section and return the output file.

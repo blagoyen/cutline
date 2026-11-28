@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "label": "RELEASE",
-  "message": "Cutline 3.1.0 — TikTok Videos & TikTok Sounds (MP4/MP3) are now supported",
+  "message": "Cutline 3.1.1 — Fixed TikTok Sound (/music/) loading & MP3 export",
   "tone": "success",
   "updatedAt": "2026-11-27"
 }

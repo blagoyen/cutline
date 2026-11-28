@@ -705,7 +705,7 @@ dependencies = [
 
 [[package]]
 name = "cutline"
-version = "3.1.0"
+version = "3.1.1"
 dependencies = [
  "reqwest 0.12.28",
  "serde",
